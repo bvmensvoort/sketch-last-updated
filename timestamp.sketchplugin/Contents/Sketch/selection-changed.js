@@ -59,8 +59,7 @@ var onSelectionChanged = function (context) {
             var replacements = new Map([
                 ["[timestamp-date]", date],
                 ["[timestamp-time]", time],
-                ["[timestamp]", date + " " + time],
-                ["[timestamp-image]"]
+                ["[timestamp]", date + " " + time]
             ]);
 
             replacements.forEach((replacementValue, replacementKey) => {
