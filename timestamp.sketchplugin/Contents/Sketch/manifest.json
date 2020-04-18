@@ -17,24 +17,6 @@
            "SelectionChanged.finish" : "onSelectionChanged"
            }
       }
-    },
-    {
-      "script" : "addtimestamp.js",
-      "name" : "Add timestamp",
-      "handlers" : {
-        "run" : "addTimestamp"
-      },
-      "shortcut": "ctrl shift t",
-      "identifier" : "com.bohemiancoding.sketch.timestamp"
-    },
-    {
-      "script" : "toggletimestamps.js",
-      "name" : "Toggle timestamps",
-      "handlers" : {
-        "run" : "toggleTimestamps"
-      },
-      "shortcut": "ctrl shift y",
-      "identifier" : "com.bohemiancoding.sketch.toggletimestamp"
     }
-  ],
+  ]
 }
