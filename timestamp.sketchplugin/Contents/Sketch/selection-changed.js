@@ -99,18 +99,9 @@ var onSelectionChanged = function (context) {
                         // Some code how to set overrides: https://sketchplugins.com/d/385-viewing-all-overrides-for-a-symbol/7
                         if (overridePoint.layerName().toLowerCase() === replacementKey) {
                             if (replacementKey === "[timestamp-image]") {
-                                //renderImage(sublayer);
-
-                                try {
-                                    //let image = NSImage.alloc().initWithData(imageData);
-                                    //sublayer.setValue_forOverridePoint_(imageData, overridePoint);
-                                    //var k = new ImageData();
-                                    //console.log(k)
-                                    //console.log(image.sketchObject, imageData, imageData.sketchObject);
-                                    //sublayer.setValue_forOverridePoint(imageData, overridePoint);
-                                } catch (e) {
-                                    console.log(e);
-                                }
+                                // Some code how to replace image overrides: https://sketchplugins.com/d/794-how-do-you-update-an-override-with-a-new-image/6    
+                                let imageData = MSImageData.alloc().initWithImage(replacementValue());
+                                sublayer.setValue_forOverridePoint(imageData, overridePoint);                            
                             } else {
                                 sublayer.setValue_forOverridePoint_(replacementValue(), overridePoint);
                             }
