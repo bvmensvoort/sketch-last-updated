@@ -249,9 +249,11 @@ function getImage(context, artboard) {
 
         // Use old API to be able to export later
         // https://sketchplugins.com/d/432-insert-new-layer-underneath-other-layers/4
-        let group = MSLayerGroup.new();
+        const group = MSLayerGroup.new();
         group.setName("Blockie");
         page.addLayers([group]);
+    
+        let shapes = [];
 
         const iconData = new Blockies().renderIcon({seed: "randString"});
         const iconWidth = Math.sqrt(iconData.length);
@@ -266,18 +268,19 @@ function getImage(context, artboard) {
             const col = i % iconWidth;
 
             // Use new API where possible
-            new ShapePath({
+            shapes.push(new ShapePath({
                 name: "Pixel "+i,
                 frame: new Rectangle(pixelSize * row, pixelSize * col, pixelSize, pixelSize),
                 style: { fills: [{ color: colors[pixel], fillType: Style.FillType.Color }], borders: [] },
                 parent: group
-            });
+            }));
         }        
 
         var result = getBase64ImageFromSlice(group, context);
 
         // Clean up / remove all objects
-
+        shapes.forEach((shape) => shape.remove());
+        group.removeFromParent();
 
         return result;
     }
