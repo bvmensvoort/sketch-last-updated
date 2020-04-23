@@ -1,6 +1,7 @@
 //In the manifest, we told Sketch that every time the `SelectionChanged` action finishes, we want it
 // to run the onSelectionChanged handler in our `selection-changed.js` script file.
 
+const sketch = require('sketch');
 
 var onSelectionChanged = function (context) {
 
@@ -20,7 +21,8 @@ var onSelectionChanged = function (context) {
 
     //capturing the date and formatting it
     var d = new Date();
-    var date = d.getDate() + "-" + d.getMonth() + "-" + d.getFullYear();
+    let date = d.getDate() + "-" + d.getMonth() + "-" + d.getFullYear();
+    let time = d.getHours() + ":" + z(d.getMinutes());
 
     function z(object, targetLength = 2, padString = "0") {
         return (object + "").padStart(targetLength, padString);
@@ -29,89 +31,97 @@ var onSelectionChanged = function (context) {
     // get the selection count.
     count = selection.count();
 
-    if (count == 0) {
-        console.log("Hide message");
-        // If nothing is selected, we just want to hide any previous message that might have been shown.
-        //document.hideMessage();
+    // Don't try to update if nothing is selected
+    if (count == 0) { return; }
 
-    } else {
+    var layerParentGroup = selection[0];
+    var artboardToSelect = null;
 
-        var layerParentGroup = selection[0];
-        var artboardToSelect = null;
-        //var names = ["last changed", "lastchanged", "date", "Date", "timestamp", "Timestamp"]
-
-        //get the parent artboard if a layer is selected by the user
-        while (layerParentGroup) {
-            if (layerParentGroup.class() == "MSArtboardGroup")) {
-                artboardToSelect = layerParentGroup;
-                break;
-            }
-
-            layerParentGroup = layerParentGroup.parentGroup();
-        };
-
-        var image;
-        var lastGenerated;
-
-        function getTimestampImage() {
-            if (!image) { 
-                image = getImage(context); 
-            }
-            return image;
+    //get the parent artboard if a layer is selected by the user
+    while (layerParentGroup) {
+        if (layerParentGroup.class() == "MSArtboardGroup")) {
+            artboardToSelect = layerParentGroup;
+            break;
         }
 
-        var replacements = new Map([
-            ["[timestamp]", () => date + " " + time],
-            ["[timestamp-date]", () => date],
-            ["[timestamp-time]", () => d.getHours() + ":" + z(d.getMinutes())],
-            ["[timestamp-year]", () => d.getFullYear()],
-            ["[timestamp-month]", () => d.getMonth()],
-            ["[timestamp-day]", () => d.getDate()],
-            ["[timestamp-hour]", () => d.getHours()],
-            ["[timestamp-minute]", () => z(d.getMinute())],
-            ["[timestamp-second]", () => z(d.getSecond())],
-            ["[timestamp-image]", getTimestampImage],
-            ["[timestamp-increment]", (curValue) => isNaN(curValue)? curValue : (parseInt(curValue)+1).toString()]
-        ]);
+        layerParentGroup = layerParentGroup.parentGroup();
+    };
 
-        //loop to iterate on children
-        for (var i = 0; i < artboardToSelect.children().length; i++) {
+    let timestampImages = new Map();
 
-            var sublayer = artboardToSelect.children()[i];
+    function getTimestampImage(seed, layerId) {
+        // Don't generate image if seed is not changed (for performance)
+        if (timestampImages.has(layerId) && timestampImages.get(layerId).seed===seed) { return timestampImages.get(layerId).image; }
 
-            replacements.forEach((replacementValue, replacementKey) => {
-                if (sublayer.name().toLowerCase() === replacementKey) {
-                    if (replacementKey === "[timestamp-image]") {
-                        // Validate
-                        // It is not possible to set fills on Images
-                        var layerFill = sublayer.style().fills();
-                        if (!layerFill.length) { return; }
+        // Generate image
+        let image = getImage(seed);
+        timestampImages.set(layerId,{seed, image});
+        return image;
+    }
 
-                        layerFill = layerFill.firstObject();
-                        layerFill.setFillType(4);
-                        layerFill.setPatternFillType(1);
-                        layerFill.setImage(MSImageData.alloc().initWithImage(replacementValue(context)));
-                    } else {
-                        let newValue = replacementValue(sublayer.stringValue());
-                        sublayer.setStringValue(newValue);
-                    }
+    var replacements = new Map([
+        ["[timestamp]", () => date + " " + time],
+        ["[timestamp-date]", () => date],
+        ["[timestamp-time]", () => time],
+        ["[timestamp-year]", () => d.getFullYear()],
+        ["[timestamp-month]", () => d.getMonth()],
+        ["[timestamp-day]", () => d.getDate()],
+        ["[timestamp-hour]", () => d.getHours()],
+        ["[timestamp-minute]", () => z(d.getMinute())],
+        ["[timestamp-second]", () => z(d.getSecond())],
+        ["[timestamp-image]", getTimestampImage],
+        ["[timestamp-increment]", (curValue) => isNaN(curValue)? curValue : (parseInt(curValue)+1).toString()]
+    ]);
+
+    //loop to iterate on children
+    for (var i = 0; i < artboardToSelect.children().length; i++) {
+
+        var sublayer = artboardToSelect.children()[i];
+        let layerId = sketch.fromNative(sublayer).id;
+
+        replacements.forEach((replacementValue, replacementKey) => {
+            if (sublayer.name().toLowerCase() === replacementKey) {
+                if (replacementKey === "[timestamp-image]") {
+                    // Validate
+                    // Don't do anything if image result will be the same
+                    let seed = date + " " + time;
+                    if (timestampImages.has(layerId) && timestampImages.get(layerId).seed===seed) { return; }
+
+                    // It is not possible to set fills on Images
+                    var layerFill = sublayer.style().fills();
+                    if (!layerFill.length) { return; }
+
+                    layerFill = layerFill.firstObject();
+                    layerFill.setFillType(4);
+                    layerFill.setPatternFillType(1);
+                    layerFill.setImage(MSImageData.alloc().initWithImage(replacementValue(seed, layerId)));
+                } else {
+                    let newValue = replacementValue(sublayer.stringValue());
+                    if (curValue!==newValue) { sublayer.setStringValue(newValue); }
                 }
-                else if (sublayer.hasOwnProperty("overrides")) {
-                    sublayer.overridePoints().forEach(function (overridePoint) {
-                        // Some code how to set overrides: https://sketchplugins.com/d/385-viewing-all-overrides-for-a-symbol/7
-                        if (overridePoint.layerName().toLowerCase() === replacementKey) {
-                            if (replacementKey === "[timestamp-image]") {
-                                // Some code how to replace image overrides: https://sketchplugins.com/d/794-how-do-you-update-an-override-with-a-new-image/6    
-                                let imageData = MSImageData.alloc().initWithImage(replacementValue());
-                                sublayer.setValue_forOverridePoint(imageData, overridePoint);                            
-                            } else {
-                                sublayer.setValue_forOverridePoint_(replacementValue(), overridePoint);
-                            }
+            }
+            else if (sublayer.hasOwnProperty("overrides")) {
+                sublayer.overridePoints().forEach(function (overridePoint) {
+                    // Some code how to set overrides: https://sketchplugins.com/d/385-viewing-all-overrides-for-a-symbol/7
+                    if (overridePoint.layerName().toLowerCase() === replacementKey) {
+                        if (replacementKey === "[timestamp-image]") {
+                            // Don't do anything if image result will be the same
+                            let seed = date + " " + time;
+                            if (timestampImages.has(layerId) && timestampImages.get(layerId).seed===seed) { return; }
+
+                            // Some code how to replace image overrides: https://sketchplugins.com/d/794-how-do-you-update-an-override-with-a-new-image/6    
+                            let imageData = MSImageData.alloc().initWithImage(replacementValue(seed));
+                            sublayer.setValue_forOverridePoint(imageData, overridePoint);                       
+                        } else {
+                            let id = overridePoint.name().split("_")[0];
+                            let curValue = sublayer.overrides()[id];
+                            let newValue = replacementValue(curValue)
+                            if (curValue!==newValue) { sublayer.setValue_forOverridePoint_(newValue, overridePoint); }
                         }
-                    });
-                }
-            });
-        };
+                    }
+                });
+            }
+        });
     };
 };
 
@@ -226,15 +236,14 @@ class Blockies {
     }
 }
 
-function getImage(context, artboard) {
-    const base64Image = generateImage(context, artboard);
+function getImage(seed) {
+    const base64Image = generateImage(seed);
     var imageData = NSData.alloc().initWithBase64EncodedString_options(base64Image, NSDataBase64DecodingIgnoreUnknownCharacters);
     var image = NSImage.alloc().initWithData(imageData);
 
     return image;
 
-    function generateImage(context) {
-        const sketch = require('sketch');
+    function generateImage(seed) {
         const Style = sketch.Style;
         const ShapePath = sketch.ShapePath;
         const Rectangle = sketch.Rectangle;
@@ -248,7 +257,7 @@ function getImage(context, artboard) {
     
         let shapes = [];
 
-        const iconData = new Blockies().renderIcon({seed: "randString"});
+        const iconData = new Blockies().renderIcon({seed});
         const iconWidth = Math.sqrt(iconData.length);
         const pixelSize = 10;
         const colors = ['', "#ffffff", "#000000"];
@@ -269,7 +278,7 @@ function getImage(context, artboard) {
             }));
         }        
 
-        var result = getBase64ImageFromSlice(group, context);
+        var result = getBase64ImageFromSlice(group);
 
         // Clean up / remove all objects
         shapes.forEach((shape) => shape.remove());
