@@ -249,7 +249,7 @@ function getImage(context, artboard) {
         const iconData = new Blockies().renderIcon({seed: "randString"});
         const iconWidth = Math.sqrt(iconData.length);
         const pixelSize = 10;
-        const colors = ['', "#c0ffee", "#dfedfe"];
+        const colors = ['', "#ffffff", "#000000"];
 
         for (let i=0; i<iconData.length && i<200; i++) {
             const pixel = iconData[i];
