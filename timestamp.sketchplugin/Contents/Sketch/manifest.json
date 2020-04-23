@@ -1,12 +1,12 @@
 
 {
-  "name" : "Timestamp Bram",
-  "description" : "Plugin to add timestamp to an artboard (it updates as you update the design).",
+  "name" : "Timestamp for Sketch",
+  "description" : "Plugin to update metadata on an artboard (it updates as you update the design).",
   "version" : "1.0",
-  "identifier" : "com.sketchapp.bram",
-  "author" : "Rachit Gupta",
-  "authorEmail" : "rachitgupta75@gmail.com",
-  "homepage":"https://rachit91.github.io/",
+  "identifier" : "com.sketchapp.timestamp",
+  "author" : "Bram van Mensvoort",
+  "authorEmail" : "info@bvmensvoort.nl",
+  "homepage":"https://www.bvmensvoort.nl/",
   "compatibleVersion": "46.2",
   "appcast": "https://rachit91.github.io/dump/resources/sketchplugin-xmls/timestamp.xml",
   "commands" : [
