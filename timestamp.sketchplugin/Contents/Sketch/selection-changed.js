@@ -65,10 +65,10 @@ var onSelectionChanged = function (context) {
         ["[timestamp-time]", () => time],
         ["[timestamp-year]", () => d.getFullYear()],
         ["[timestamp-month]", () => d.getMonth()],
-        ["[timestamp-day]", () => d.getDate()],
-        ["[timestamp-hour]", () => d.getHours()],
+        ["[timestamp-day]", () => d.getDate().toString()],
+        ["[timestamp-hour]", () => d.getHours().toString()],
         ["[timestamp-minute]", () => z(d.getMinute())],
-        ["[timestamp-second]", () => z(d.getSecond())],
+        ["[timestamp-second]", () => z(d.getSeconds())],
         ["[timestamp-image]", getTimestampImage],
         ["[timestamp-increment]", (curValue) => isNaN(curValue)? curValue : (parseInt(curValue)+1).toString()]
     ]);
