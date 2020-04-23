@@ -70,7 +70,8 @@ var onSelectionChanged = function (context) {
             ["[timestamp-hour]", () => d.getHours()],
             ["[timestamp-minute]", () => z(d.getMinute())],
             ["[timestamp-second]", () => z(d.getSecond())],
-            ["[timestamp-image]", getTimestampImage]
+            ["[timestamp-image]", getTimestampImage],
+            ["[timestamp-increment]", (curValue) => isNaN(curValue)? curValue : (parseInt(curValue)+1).toString()]
         ]);
 
         //loop to iterate on children
@@ -91,7 +92,8 @@ var onSelectionChanged = function (context) {
                         layerFill.setPatternFillType(1);
                         layerFill.setImage(MSImageData.alloc().initWithImage(replacementValue(context)));
                     } else {
-                        sublayer.setStringValue(replacementValue());
+                        let newValue = replacementValue(sublayer.stringValue());
+                        sublayer.setStringValue(newValue);
                     }
                 }
                 else if (sublayer.hasOwnProperty("overrides")) {
