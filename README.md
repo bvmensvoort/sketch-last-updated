@@ -1,89 +1,80 @@
-# Timestamp
+# Last-updated
 
-A Sketch plugin to add or toggle timestamps (last updated date) to the artboards on a page.
-
-<img src = "https://github.com/rachit91/sketch-timestamp/blob/master/resources/assets/timestamp_main_gif.gif"/>
+Sketch plugin to update placeholders with with metadata about last save, such as timestamp or increment
 
 <br>
 
 # Installation
 
-<a href="https://sketchpacks.com/YOUR_NAME/PLUGIN_NAME/install">
-  <img width="160" height="41" src="http://sketchpacks-com.s3.amazonaws.com/assets/badges/sketchpacks-badge-install.png" >
-</a><br>
-
 1. Download latest .zip file via Github or 
-<a href="https://github.com/rachit91/sketch-timestamp/blob/master/versions/timestamp-V1.sketchplugin.zip/">**here**</a>.
+<a href="https://github.com/bvmensvoort/sketch-last-updated/blob/master/versions/last-updated-V1.sketchplugin.zip/">**here**</a>.
 2. Unzip and double click to install it.
 
 <br>
 
 # Introduction
 
-Designs keeps changing; versions and versions of artboards/files keep coming in. I often find myself dating these different versions manually in the form of a text layer on an artboard which I change whenever I update the design. And then update the overall version of the design by renaming the sketch file and adding a date to it. 
+When updating your shared design, it is hard to keep track of versions. Then it is handy to show a version indicator.
+This plugin will update this indicator automatically on every save.
 
-<b>What if this date updated on its own whenever I made changes to the designs?</b>
+For the version indicator, you can use date/time, use a generated image or use an increment.
 
-This is what 'Timestamp' is trying to achieve. A plugin to add and toggle the timestamps on the artboards in your sketch file. Once you add a timestamp, don't worry about editing it manually. It will automatically update when you change your designs (it is a locked layer - see the gifs below).
+![alt text](https://github.com/bvmensvoort/sketch-lastupdated/raw/master/src/lastupdated-features.png "Screenshot Sketch with features displayed")
 
-Specifically, this is what this plugin can do:
+## Installation
 
-### Features
+1. Open the .sketchplugin-file
+2. Sketch will open and tell you the plugin is installed
 
-| Timestamp can                                  | Notes                                                             |
-| ----------------------------------------       | ----------------------------------------                          |
-| Add a timestamp to a single artboard           | Select the artboard or a layer on the artboard and run the plugin |
-| Add a timestamp to multiple artboards at once  | Select multiple artboards and run the plugin                      |
-| Add a timestamp to all the artboards on a page | Without selecting anything, run the plugin while on the page      |
-| Toggle timestamps on a page                    | Select 'Toggle timestamps' from the menu to hide or show timestamps |
+## Getting started
 
-### Usage and shortcuts
+1. Open a sketch file, or create a new one
+2. Insert an artboard
+3. Insert a text layer inside this artboard
+3. Name it `[lastupdated]` (or one of the other supported strings)
+4. Select a different element on the artboard
+5. The text layer will update its value
 
-- <b>[CTRL + SHIFT + T]</b> or access from 'Plugins' menu to add timestamps to the selected artboard or all the artboards on this page
+## Usage
+The plugin will update text or images in placeholder layers.
+So you can design your own version indicator.
+
+Placeholders which the plugin monitors (on January, 31st 2020 at 3:31:59 PM):
+* `[lastupdated]` :  31-1-2020 15:31
+* `[lastupdatedUS]` :  1/31/2020 15:31
+* `[lastupdated-full-date]` :  31-1-2020
+* `[lastupdated-full-dateUS]` :  1/31/2020
+* `[lastupdated-time]` :  15:31
+* `[lastupdated-year]` :  2020
+* `[lastupdated-month]` :  1
+* `[lastupdated-day]` :  4
+* `[lastupdated-day-str]` :  thu
+* `[lastupdated-hour]` : 15
+* `[lastupdated-minute]` :  31
+* `[lastupdated-second]` :  59
+* `[lastupdated-image]` :  [Blockies](https://github.com/download13/blockies) image,
+* `[lastupdated-increment]` :  1
+
+The placeholders are updated on elements or symbol overrides inside an artboard.
+Note: `[lastupdated-image]` can only be used on shapes (like a rectangle) on the artboard, or on images within a symbol.
+
+## Credits
+This plugin didn't exist for some great inspiration:
+- [Rachit Gupta - Sketch-timestamp](https://github.com/rachit91/sketch-timestamp)
+- Great questons on the Sketch plugins forum of [@perrysmotors](https://sketchplugins.com/u/perrysmotors)
 
 <br>
 
-<img src = "https://github.com/rachit91/sketch-timestamp/blob/master/resources/assets/timestamp_1_gif.gif"/>
-
-<br><br>
-
-- Timestamp gets updated as the design is updated
-
-<br>
-
-<img src = "https://github.com/rachit91/sketch-timestamp/blob/master/resources/assets/timestamp_gif_2.gif"/>
-
-<br><br>
-
-- <b>[CTRL + SHIFT + Y]</b> or access from 'Plugins' menu to toggle timestamps on a page
-
-<br>
-
-<img src = "https://github.com/rachit91/sketch-timestamp/blob/master/resources/assets/timestamp_gif_3.gif"/>
-
-<br><br>
-
-### Errors
-
-A message informing the user will be shown at the bottom of the screen if:
-- There are no artboards on the page
-- The artboards do not have any timestamps
-
-<br>
-
-### Constraints
-
-#### V1
-- Timestamp is added with pre-defined x,y co-ordinates for an artboard. If your artboards are small, sometimes the layer might end up getting added outside or misplaced -- I'm working on it.
-- If you change the name of the layer from 'timestamp' to anything else, it will not update anymore. If you make any changes, remember to name it back to 'timestamp'.
-- The timestamp layer is single style, 'Helvetica', 12px and Black color. In future, I will either open it to the user to select the style of the layer or copy the styles from your design.
+# Releases
+## V1
+- Automatically updates on select
+- Supports date and time: `[lastupdated]`, `[lastupdatedUS]`, `[lastupdated-full-date]`, `[lastupdated-full-dateUS]`, `[lastupdated-time]`, `[[lastupdated-year]`, `[lastupdated-month]`, `[lastupdated-day]`, `[lastupdated-day-str]`, `[lastupdated-hour]`, `[lastupdated-minute]`, `[lastupdated-second]`
+- Supports Blockies: `[lastupdated-image]`
+- Supports increment: `[lastupdated-increment]`
 
 <br>
 
 # Have suggestions?
 
-If you have any questions, feedback or suggestions, please feel free to reach out to me at 
-<a href="mailto:rachitgupta75@gmail.com">rachitgupta75@gmail.com</a>.
-
-
-
+Feel free to add a pull request or mention the plugin.
+Thanks for using it (if so)!

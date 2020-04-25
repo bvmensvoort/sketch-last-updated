@@ -1,9 +1,9 @@
 
 {
-  "name" : "Timestamp for Sketch",
-  "description" : "Plugin to update metadata on an artboard (it updates as you update the design).",
+  "name" : "Last-updated for Sketch",
+  "description" : "Sketch plugin to update placeholders with with metadata about last save, such as timestamp or increment.",
   "version" : "1.0",
-  "identifier" : "com.sketchapp.timestamp",
+  "identifier" : "com.sketchapp.lastupdated",
   "author" : "Bram van Mensvoort",
   "authorEmail" : "info@bvmensvoort.nl",
   "homepage":"https://www.bvmensvoort.nl/",

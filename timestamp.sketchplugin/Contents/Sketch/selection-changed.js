@@ -47,30 +47,30 @@ var onSelectionChanged = function (context) {
         layerParentGroup = layerParentGroup.parentGroup();
     };
 
-    let timestampImages = new Map();
+    let lastupdatedImages = new Map();
 
-    function getTimestampImage(seed, layerId) {
+    function getLastupdatedImage(seed, layerId) {
         // Don't generate image if seed is not changed (for performance)
-        if (timestampImages.has(layerId) && timestampImages.get(layerId).seed===seed) { return timestampImages.get(layerId).image; }
+        if (lastupdatedImages.has(layerId) && lastupdatedImages.get(layerId).seed===seed) { return lastupdatedImages.get(layerId).image; }
 
         // Generate image
         let image = getImage(seed);
-        timestampImages.set(layerId,{seed, image});
+        lastupdatedImages.set(layerId,{seed, image});
         return image;
     }
 
     var replacements = new Map([
-        ["[timestamp]", () => date + " " + time],
-        ["[timestamp-date]", () => date],
-        ["[timestamp-time]", () => time],
-        ["[timestamp-year]", () => d.getFullYear()],
-        ["[timestamp-month]", () => d.getMonth()],
-        ["[timestamp-day]", () => d.getDate().toString()],
-        ["[timestamp-hour]", () => d.getHours().toString()],
-        ["[timestamp-minute]", () => z(d.getMinute())],
-        ["[timestamp-second]", () => z(d.getSeconds())],
-        ["[timestamp-image]", getTimestampImage],
-        ["[timestamp-increment]", (curValue) => isNaN(curValue)? curValue : (parseInt(curValue)+1).toString()]
+        ["[lastupdated]", () => date + " " + time],
+        ["[lastupdated-date]", () => date],
+        ["[lastupdated-time]", () => time],
+        ["[lastupdated-year]", () => d.getFullYear()],
+        ["[lastupdated-month]", () => d.getMonth()],
+        ["[lastupdated-day]", () => d.getDate().toString()],
+        ["[lastupdated-hour]", () => d.getHours().toString()],
+        ["[lastupdated-minute]", () => z(d.getMinute())],
+        ["[lastupdated-second]", () => z(d.getSeconds())],
+        ["[lastupdated-image]", getLastupdatedImage],
+        ["[lastupdated-increment]", (curValue) => isNaN(curValue)? curValue : (parseInt(curValue)+1).toString()]
     ]);
 
     //loop to iterate on children
@@ -81,11 +81,11 @@ var onSelectionChanged = function (context) {
 
         replacements.forEach((replacementValue, replacementKey) => {
             if (sublayer.name().toLowerCase() === replacementKey) {
-                if (replacementKey === "[timestamp-image]") {
+                if (replacementKey === "[lastupdated-image]") {
                     // Validate
                     // Don't do anything if image result will be the same
                     let seed = date + " " + time;
-                    if (timestampImages.has(layerId) && timestampImages.get(layerId).seed===seed) { return; }
+                    if (lastupdatedImages.has(layerId) && lastupdatedImages.get(layerId).seed===seed) { return; }
 
                     // It is not possible to set fills on Images
                     var layerFill = sublayer.style().fills();
@@ -104,10 +104,10 @@ var onSelectionChanged = function (context) {
                 sublayer.overridePoints().forEach(function (overridePoint) {
                     // Some code how to set overrides: https://sketchplugins.com/d/385-viewing-all-overrides-for-a-symbol/7
                     if (overridePoint.layerName().toLowerCase() === replacementKey) {
-                        if (replacementKey === "[timestamp-image]") {
+                        if (replacementKey === "[lastupdated-image]") {
                             // Don't do anything if image result will be the same
                             let seed = date + " " + time;
-                            if (timestampImages.has(layerId) && timestampImages.get(layerId).seed===seed) { return; }
+                            if (lastupdatedImages.has(layerId) && lastupdatedImages.get(layerId).seed===seed) { return; }
 
                             // Some code how to replace image overrides: https://sketchplugins.com/d/794-how-do-you-update-an-override-with-a-new-image/6    
                             let imageData = MSImageData.alloc().initWithImage(replacementValue(seed));
