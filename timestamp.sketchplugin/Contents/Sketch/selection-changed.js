@@ -61,23 +61,27 @@ var onSelectionChanged = function (context) {
 
     var replacements = new Map([
         ["[lastupdated]", () => date + " " + time],
-        ["[lastupdated-date]", () => date],
+        ["[lastupdatedus]", () => d.getMonth() + "/" + d.getDate() + "/" + d.getFullYear() + " " + time],
+        ["[lastupdated-full-date]", () => date],
+        ["[lastupdated-full-dateus]", () => d.getMonth() + "/" + d.getDate() + "/" + d.getFullYear()],
         ["[lastupdated-time]", () => time],
-        ["[lastupdated-year]", () => d.getFullYear()],
-        ["[lastupdated-month]", () => d.getMonth()],
-        ["[lastupdated-day]", () => d.getDate().toString()],
+        ["[lastupdated-year]", () => d.getFullYear().toString()],
+        ["[lastupdated-month]", () => d.getMonth().toString()],
+        ["[lastupdated-month-str]", () => ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"][d.getMonth()]],
+        ["[lastupdated-date]", () => d.getDate().toString()],
+        ["[lastupdated-day]", () => d.getDay().toString()],
+        ["[lastupdated-day-str]", () => ["mon","tue","wed","thu","fri","sat","sun"][d.getDay()]],
         ["[lastupdated-hour]", () => d.getHours().toString()],
-        ["[lastupdated-minute]", () => z(d.getMinute())],
+        ["[lastupdated-minute]", () => z(d.getMinutes())],
         ["[lastupdated-second]", () => z(d.getSeconds())],
         ["[lastupdated-image]", getLastupdatedImage],
-        ["[lastupdated-increment]", (curValue) => isNaN(curValue)? curValue : (parseInt(curValue)+1).toString()]
+        ["[lastupdated-increment]", (curValue) => isNaN(curValue) || isNaN(parseInt(curValue))? curValue : (parseInt(curValue)+1).toString()]
     ]);
 
     //loop to iterate on children
-    for (var i = 0; i < artboardToSelect.children().length; i++) {
-
-        var sublayer = artboardToSelect.children()[i];
-        let layerId = sketch.fromNative(sublayer).id;
+    for (let i = 0; i < artboardToSelect.children().length; i++) {
+        let sublayer = artboardToSelect.children()[i];
+        let layerId = sublayer.objectID();
 
         replacements.forEach((replacementValue, replacementKey) => {
             if (sublayer.name().toLowerCase() === replacementKey) {
@@ -96,7 +100,8 @@ var onSelectionChanged = function (context) {
                     layerFill.setPatternFillType(1);
                     layerFill.setImage(MSImageData.alloc().initWithImage(replacementValue(seed, layerId)));
                 } else {
-                    let newValue = replacementValue(sublayer.stringValue());
+                    let curValue = sublayer.stringValue();
+                    let newValue = replacementValue(curValue);
                     if (curValue!==newValue) { sublayer.setStringValue(newValue); }
                 }
             }
@@ -110,7 +115,7 @@ var onSelectionChanged = function (context) {
                             if (lastupdatedImages.has(layerId) && lastupdatedImages.get(layerId).seed===seed) { return; }
 
                             // Some code how to replace image overrides: https://sketchplugins.com/d/794-how-do-you-update-an-override-with-a-new-image/6    
-                            let imageData = MSImageData.alloc().initWithImage(replacementValue(seed));
+                            let imageData = MSImageData.alloc().initWithImage(replacementValue(seed, layerId));
                             sublayer.setValue_forOverridePoint(imageData, overridePoint);                       
                         } else {
                             let id = overridePoint.name().split("_")[0];
