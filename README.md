@@ -7,7 +7,7 @@ Sketch plugin to update placeholders with with metadata about last save, such as
 # Installation
 
 1. Download  
-[latest .zip file](https://github.com/bvmensvoort/sketch-last-updated/releases/download/v0.0.10/sketch-last-updated-0.0.1.zip) or via [releases page](https://github.com/bvmensvoort/sketch-last-updated/releases).
+[latest .zip file](https://github.com/bvmensvoort/sketch-last-updated/releases/download/v0.0.1/sketch-last-updated-0.0.1.zip) or via [releases page](https://github.com/bvmensvoort/sketch-last-updated/releases).
 2. Unzip and double click to install it.
 
 <br>
@@ -61,7 +61,7 @@ Note: `[lastupdated-image]` can only be used on shapes (like a rectangle) on the
 ## Credits
 This plugin didn't exist for some great inspiration:
 - [Rachit Gupta - Sketch-timestamp](https://github.com/rachit91/sketch-timestamp)
-- Great questons on the Sketch plugins forum of [@perrysmotors](https://sketchplugins.com/u/perrysmotors)
+- Great questons on the Sketch plugins forum of [@perrysmotors](https://sketchplugins.com/d/794-how-do-you-update-an-override-with-a-new-image)
 
 <br>
 

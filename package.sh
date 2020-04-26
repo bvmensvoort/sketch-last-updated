@@ -5,7 +5,7 @@ shasum --algorithm 256 LICENSE README.md >> SHA256SUMS
 
 echo "-- Pack to zip archive"
 ZIPFILE=sketch-last-updated-${RELEASE_VERSION}.zip
-zip -9 ${ZIPFILE} last-updated.sketchplugin LICENSE README.md
+zip --recurse-paths -9 ${ZIPFILE} last-updated.sketchplugin LICENSE README.md
 echo "- File created: ${ZIPFILE}"
 
 echo "-- Add SHA265 checksum of package"
