@@ -1,7 +1,7 @@
 <rss version="2.0">
     <channel>
         <title>Last-updated plugin change log</title>
-        <link>https://raw.githubusercontent.com/bvmensvoort/sketch-last-updated/sketch-last-updated.xml</link>
+        <link>https://raw.githubusercontent.com/bvmensvoort/sketch-last-updated/master/appcast.xml</link>
         <description>
         Most recent changes to timestamp pluging for Sketch
         </description>
