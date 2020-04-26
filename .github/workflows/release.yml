@@ -32,9 +32,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: sketch-last-updated-${{ env.RELEASE_VERSION }}.tgz
-          asset_name: sketch-last-updated-${{ env.RELEASE_VERSION }}.tgz
-          asset_content_type: application/gnutar
+          asset_path: ./sketch-last-updated-${{ env.RELEASE_VERSION }}.zip
+          asset_name: sketch-last-updated-${{ env.RELEASE_VERSION }}.zip
+          asset_content_type: application/gzip
       - name: Upload Release Asset Checksum
         id: upload-release-asset-checksum
         uses: actions/upload-release-asset@v1.0.1
@@ -42,6 +42,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: sketch-last-updated-${{ env.RELEASE_VERSION }}.tgz.sha256sum
-          asset_name: foobot-last-updated-${{ env.RELEASE_VERSION }}.tgz.sha256sum
+          asset_path: ./sketch-last-updated-${{ env.RELEASE_VERSION }}.zip.sha256sum
+          asset_name: sketch-last-updated-${{ env.RELEASE_VERSION }}.zip.sha256sum
           asset_content_type: text/plain

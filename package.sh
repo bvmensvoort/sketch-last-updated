@@ -4,10 +4,13 @@ find ./last-updated.sketchplugin -type f -print0  | xargs -0 shasum --algorithm 
 shasum --algorithm 256 LICENSE README.md >> SHA256SUMS
 
 echo "-- Pack to zip archive"
-zip -9 last-updated.zip last-updated.sketchplugin LICENSE README.md
+ZIPFILE=sketch-last-updated-${RELEASE_VERSION}.zip
+zip -9 ${ZIPFILE} last-updated.sketchplugin LICENSE README.md
+echo "- File created: ${ZIPFILE}"
 
-echo "-- Show SHA265 checksum of package"
-ZIPFILE=last-updated.zip
-shasum --algorithm 256 ${ZIPFILE} > ${ZIPFILE}.sha256sums
+echo "-- Add SHA265 checksum of package"
+shasum --algorithm 256 ${ZIPFILE}
+shasum --algorithm 256 ${ZIPFILE} > ${ZIPFILE}.sha256sum
+echo "- File created: ${ZIPFILE}.sha256sum"
 
 rm -rf SHA256SUMS

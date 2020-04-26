@@ -6,8 +6,8 @@ Sketch plugin to update placeholders with with metadata about last save, such as
 
 # Installation
 
-1. Download latest .zip file via Github or 
-<a href="https://github.com/bvmensvoort/sketch-last-updated/blob/master/versions/last-updated-V1.sketchplugin.zip/">**here**</a>.
+1. Download  
+[latest .zip file](https://github.com/bvmensvoort/sketch-last-updated/releases/download/v0.0.10/sketch-last-updated-0.0.1.zip) or via [releases page](https://github.com/bvmensvoort/sketch-last-updated/releases).
 2. Unzip and double click to install it.
 
 <br>
@@ -19,7 +19,7 @@ This plugin will update this indicator automatically on every save.
 
 For the version indicator, you can use date/time, use a generated image or use an increment.
 
-![alt text](https://github.com/bvmensvoort/sketch-lastupdated/raw/master/src/lastupdated-features.png "Screenshot Sketch with features displayed")
+![Screenshot Sketch with features displayed](https://github.com/bvmensvoort/sketch-last-updated/raw/master/lastupdated-features.png)
 
 ## Installation
 
