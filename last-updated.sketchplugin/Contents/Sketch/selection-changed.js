@@ -39,13 +39,15 @@ var onSelectionChanged = function (context) {
 
     //get the parent artboard if a layer is selected by the user
     while (layerParentGroup) {
-        if (layerParentGroup.class() == "MSArtboardGroup")) {
+        if (layerParentGroup.class() == "MSArtboardGroup") {
             artboardToSelect = layerParentGroup;
             break;
         }
 
         layerParentGroup = layerParentGroup.parentGroup();
     };
+
+    if (artboardToSelect === null) return;
 
     let lastupdatedImages = new Map();
 
