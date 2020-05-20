@@ -21,7 +21,7 @@ var onSelectionChanged = function (context) {
 
     //capturing the date and formatting it
     var d = new Date();
-    let date = d.getDate() + "-" + d.getMonth() + "-" + d.getFullYear();
+    let date = d.getDate() + "-" + (d.getMonth()+1) + "-" + d.getFullYear();
     let time = d.getHours() + ":" + z(d.getMinutes());
 
     function z(object, targetLength = 2, padString = "0") {
@@ -63,12 +63,12 @@ var onSelectionChanged = function (context) {
 
     var replacements = new Map([
         ["[lastupdated]", () => date + " " + time],
-        ["[lastupdatedus]", () => d.getMonth() + "/" + d.getDate() + "/" + d.getFullYear() + " " + time],
+        ["[lastupdatedus]", () => (d.getMonth()+1) + "/" + d.getDate() + "/" + d.getFullYear() + " " + time],
         ["[lastupdated-full-date]", () => date],
-        ["[lastupdated-full-dateus]", () => d.getMonth() + "/" + d.getDate() + "/" + d.getFullYear()],
+        ["[lastupdated-full-dateus]", () => (d.getMonth()+1) + "/" + d.getDate() + "/" + d.getFullYear()],
         ["[lastupdated-time]", () => time],
         ["[lastupdated-year]", () => d.getFullYear().toString()],
-        ["[lastupdated-month]", () => d.getMonth().toString()],
+        ["[lastupdated-month]", () => (d.getMonth()+1).toString()],
         ["[lastupdated-month-str]", () => ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"][d.getMonth()]],
         ["[lastupdated-date]", () => d.getDate().toString()],
         ["[lastupdated-day]", () => d.getDay().toString()],
