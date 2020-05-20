@@ -17,6 +17,14 @@
            "SelectionChanged.finish" : "onSelectionChanged"
            }
       }
+    },
+    {
+      "script" : "document-saved.js",
+      "handlers" : {
+        "actions" : {
+           "DocumentSaved" : "onDocumentSaved"
+           }
+      }
     }
   ]
 }
