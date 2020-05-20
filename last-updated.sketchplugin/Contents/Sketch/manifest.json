@@ -8,7 +8,7 @@
   "authorEmail" : "info@bvmensvoort.nl",
   "homepage":"https://www.bvmensvoort.nl/",
   "compatibleVersion": "46.2",
-  "appcast": "https://rachit91.github.io/dump/resources/sketchplugin-xmls/timestamp.xml",
+  "appcast": "https://raw.githubusercontent.com/bvmensvoort/sketch-last-updated/master/appcast.xml",
   "commands" : [
     {
       "script" : "selection-changed.js",
