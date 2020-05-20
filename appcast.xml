@@ -7,6 +7,14 @@
         </description>
         <language>en</language>
         <item>
+            <title>Version 1.1</title>
+            <description>
+            - Updates the placeholders when saving the document. This makes selecting stuff much faster.
+            - Now the correct month number is used in month-placeholders
+            </description>
+            <enclosure url="https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.1.0/sketch-last-updated-1.1.0.zip" sparkle:version="0.1"/>
+        </item>
+        <item>
             <title>Version 0.1</title>
             <description>
             Add placeholders in your Sketch file that will automatically be filled with last-updated metadata.
