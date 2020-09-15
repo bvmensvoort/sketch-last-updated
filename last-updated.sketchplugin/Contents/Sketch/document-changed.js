@@ -3,6 +3,26 @@
 const Settings = require('sketch/settings');
 const Sketch = require('sketch');
 const verbose = false;
+const placeholders = [
+    "[lastupdated]", 
+    "[lastupdatedus]", 
+    "[lastupdated-full-date]",
+    "[lastupdated-full-dateus]",
+    "[lastupdated-time]",
+    "[lastupdated-year]",
+    "[lastupdated-month]",
+    "[lastupdated-month-str]",
+    "[lastupdated-date]",
+    "[lastupdated-day]",
+    "[lastupdated-day-str]",
+    "[lastupdated-hour]",
+    "[lastupdated-minute]",
+    "[lastupdated-second]",
+    "[lastupdated-image]",
+    "[lastupdated-increment]",
+    "[lastupdated-size-bytes]",
+    "[lastupdated-is-autosaved]"
+];
 var onDocumentChanged = function (context) {
     
     if (verbose) console.log("On document changed", context.actionContext);
@@ -19,18 +39,26 @@ var onDocumentChanged = function (context) {
     return;
  
     function getArtboard(objRef, fullPath, document) {
-        var artboardToSelect = null;
-        layerParentGroup = objRef;
+        let artboardToSelect = null;
+        let layerParentGroup = objRef;
+        let isPlaceholderChanged = false;
 
         if (typeof objRef.parentGroup === "undefined") {
             // Don't update when override is updated by the plugin itself
             // Otherwise we will be in a loop
-            if (objRef.class() === "MSOverrideValue") {
-                // Work to do here
-                console.log("ObjectRef", objRef.layerName());
-            }
+            
+
             // Apparently for MSImmutableRectangleShape there is no 'parentGroup' function
-            layerParentGroup = getArtboardFallback(fullPath, document);
+            layerParentGroup = getObjectFromFullPath(fullPath, document);
+
+            // Skip change when it is a [lastupdated] placeholder
+            if (objRef.class().toString() == "MSOverrideValue") {    // === doesn't work for some reason
+                isPlaceholderChanged = detectPlaceholderInOverride(objRef, layerParentGroup);
+                if (isPlaceholderChanged) {
+                    if (verbose) console.log("This change is caused by this plugin, ignore change to prevent a loop.");
+                    return artboardToSelect;
+                }
+            }
         }
         
         //get the parent artboard if a layer is selected by the user
@@ -45,7 +73,7 @@ var onDocumentChanged = function (context) {
 
         // Try to get parent based on fullpath
         // Solution from: https://sketchplugins.com/d/1886-ondocumentchange-fullpath/4
-        function getArtboardFallback(fullPath, document) {
+        function getObjectFromFullPath(fullPath, document) {
             // Remove item after last . to get parent
             let path = fullPath.split('.').slice(0, -1);
 
@@ -67,6 +95,23 @@ var onDocumentChanged = function (context) {
                 (acc, cur) => acc[cur.match(/\w*/)[0]][cur.match(/\d+/)[0]], document)
             
             return parent.sketchObject;
+        }
+
+        function detectPlaceholderInOverride(overrideValueReference, object) {
+            let isPlaceholder = false;
+            let overrideId = overrideValueReference.overrideName().toString();
+
+            // Find overridePoint in order to get the name of the changed overrideValue
+            let matchingOverridePoint = object.overridePoints().find(function (overridePoint) {
+                return overridePoint.name().toString()+"" == overrideId;
+            });
+
+            // Check if overridePoint matches a placeholder name
+            if (matchingOverridePoint) {
+                isPlaceholder = placeholders.includes(matchingOverridePoint.layerName().toLowerCase());
+            }
+
+            return isPlaceholder;
         }
     }
 

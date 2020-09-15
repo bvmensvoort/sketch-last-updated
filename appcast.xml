@@ -9,8 +9,8 @@
         <item>
             <title>Version 1.2</title>
             <description>
-            - Marks document as changed on document change instead of selection change (finally). This will prevent unnecessary saves.
-            - Add [size-bytes] and [autosaved] to possible variables
+            - Marks document as changed on document change instead of selection change (finally). This will prevent unnecessary saves and might be a bit faster.
+            - Add [size-bytes] and [autosaved] to possible placeholders
             </description>
             <enclosure url="https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.2.0/sketch-last-updated-1.2.0.zip" sparkle:version="0.1"/>
         </item>

@@ -7,7 +7,7 @@ Sketch plugin to update placeholders with with metadata about last save, such as
 # Installation
 
 1. Download  
-[latest .zip file](https://github.com/bvmensvoort/sketch-last-updated/releases/download/v0.0.1/sketch-last-updated-0.0.1.zip) or via [releases page](https://github.com/bvmensvoort/sketch-last-updated/releases).
+[latest .zip file](https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.2.0/sketch-last-updated-1.2.0.zip) or via [releases page](https://github.com/bvmensvoort/sketch-last-updated/releases).
 2. Unzip and double click to install it.
 
 <br>
@@ -54,6 +54,8 @@ Placeholders which the plugin monitors (on January, 31st 2020 at 3:31:59 PM):
 * `[lastupdated-second]` :  59
 * `[lastupdated-image]` :  [Blockies](https://github.com/download13/blockies) image,
 * `[lastupdated-increment]` :  1
+* `[lastupdated-size-bytes]` :  237234
+* `[lastupdated-is-autosaved]` :  0
 
 The placeholders are updated on elements or symbol overrides inside an artboard.
 Note: `[lastupdated-image]` can only be used on shapes (like a rectangle) on the artboard, or on images within a symbol.
@@ -66,7 +68,16 @@ This plugin didn't exist for some great inspiration:
 <br>
 
 # Releases
-## V1
+## v1.2.0
+- Marks document as changed on document change instead of selection change (finally). This will prevent unnecessary saves and might be a bit faster.
+- Add [size-bytes] and [autosaved] to possible placeholders
+Unfortunately, a double save is needed to save the updated placeholders in the Sketch file.
+
+## v1.1.0
+- Updates the placeholders when saving the document. This makes selecting stuff much faster.
+- Now the correct month number is used in month-placeholders
+
+## V0.0.1
 - Automatically updates on select
 - Supports date and time: `[lastupdated]`, `[lastupdatedUS]`, `[lastupdated-full-date]`, `[lastupdated-full-dateUS]`, `[lastupdated-time]`, `[[lastupdated-year]`, `[lastupdated-month]`, `[lastupdated-day]`, `[lastupdated-day-str]`, `[lastupdated-hour]`, `[lastupdated-minute]`, `[lastupdated-second]`
 - Supports Blockies: `[lastupdated-image]`

@@ -2,6 +2,7 @@ const sketch = require('sketch');
 const Settings = require('sketch/settings');
 var sizeBytes;
 var autoSaved;
+const verbose = false;
 
 var onDocumentSaved = function (context) {
     // The action context for this action contains three keys:
@@ -23,7 +24,7 @@ var onDocumentSaved = function (context) {
         });
     });
 
-    console.log(changedArtboards)
+    if (verbose) console.log("Document saved. After that, placeholders on artboards were updated: ", changedArtboards);
 
     // Remove mark for updated documents
     Settings.setDocumentSettingForKey(document, 'last-updated-marked-artboards', {});
