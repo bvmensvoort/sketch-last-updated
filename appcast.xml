@@ -3,9 +3,17 @@
         <title>Last-updated plugin change log</title>
         <link>https://raw.githubusercontent.com/bvmensvoort/sketch-last-updated/master/appcast.xml</link>
         <description>
-        Most recent changes to timestamp pluging for Sketch
+        Most recent changes to last-updated pluging for Sketch
         </description>
         <language>en</language>
+        <item>
+            <title>Version 1.2</title>
+            <description>
+            - Marks document as changed on document change instead of selection change (finally). This will prevent unnecessary saves.
+            - Add [size-bytes] and [autosaved] to possible variables
+            </description>
+            <enclosure url="https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.2.0/sketch-last-updated-1.2.0.zip" sparkle:version="0.1"/>
+        </item>
         <item>
             <title>Version 1.1</title>
             <description>

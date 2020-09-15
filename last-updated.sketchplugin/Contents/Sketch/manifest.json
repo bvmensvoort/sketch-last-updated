@@ -1,29 +1,36 @@
-
 {
-  "name" : "Last-updated for Sketch",
-  "description" : "Sketch plugin to update placeholders with with metadata about last save, such as timestamp or increment.",
-  "version" : "1.1",
-  "identifier" : "com.sketchapp.lastupdated",
-  "author" : "Bram van Mensvoort",
-  "authorEmail" : "info@bvmensvoort.nl",
-  "homepage":"https://www.bvmensvoort.nl/",
-  "compatibleVersion": "46.2",
+  "name": "Last-updated for Sketch",
+  "description": "Sketch plugin to update placeholders with with metadata about last save, such as timestamp or increment.",
+  "version": "1.2.0",
+  "identifier": "com.sketchapp.lastupdated",
+  "author": "Bram van Mensvoort",
+  "authorEmail": "info@bvmensvoort.nl",
+  "homepage": "https://www.bvmensvoort.nl/",
+  "compatibleVersion": "59",
   "appcast": "https://raw.githubusercontent.com/bvmensvoort/sketch-last-updated/master/appcast.xml",
-  "commands" : [
+  "commands": [
     {
-      "script" : "selection-changed.js",
-      "handlers" : {
-        "actions" : {
-           "SelectionChanged.finish" : "onSelectionChanged"
-           }
+      "script": "document-changed.js",
+      "handlers": {
+        "actions": {
+          "onDocumentChanged": "onDocumentChanged"
+        }
       }
     },
     {
-      "script" : "document-saved.js",
-      "handlers" : {
-        "actions" : {
-           "DocumentSaved" : "onDocumentSaved"
-           }
+      "script": "selection-changed.js",
+      "handlers": {
+        "actions": {
+          "dummy-SelectionChanged.finish": "onSelectionChanged"
+        }
+      }
+    },
+    {
+      "script": "document-saved.js",
+      "handlers": {
+        "actions": {
+          "DocumentSaved": "onDocumentSaved"
+        }
       }
     }
   ]

@@ -1,5 +1,7 @@
 const sketch = require('sketch');
 const Settings = require('sketch/settings');
+var sizeBytes;
+var autoSaved;
 
 var onDocumentSaved = function (context) {
     // The action context for this action contains three keys:
@@ -8,8 +10,10 @@ var onDocumentSaved = function (context) {
     // autoSaved: A BOOL that is true if the document was auto saved by the operating system, and false otherwise
 
     document = context.actionContext.document;
+    sizeBytes = context.actionContext.size;
+    autoSaved = context.actionContext.autosaved;
     
-    const changedArtboards = Settings.documentSettingForKey(document, 'last-updated-marked-artboards') || {};
+    var changedArtboards = Settings.documentSettingForKey(document, 'last-updated-marked-artboards') || {};
     document.pages().forEach((page) => {
         page.artboards().forEach((artboard) => {
             let lastUpdatedDate = changedArtboards[artboard.objectID()];
@@ -18,12 +22,16 @@ var onDocumentSaved = function (context) {
             }
         });
     });
+
+    console.log(changedArtboards)
+
+    // Remove mark for updated documents
+    Settings.setDocumentSettingForKey(document, 'last-updated-marked-artboards', {});
 };
 
 
 function applyLastUpdated(artboard, lastUpdatedDate) {
     let d = new Date(lastUpdatedDate);
-    console.log(d);
     let lastupdatedImages = new Map();
     let date = d.getDate() + "-" + (d.getMonth()+1) + "-" + d.getFullYear();
     let time = d.getHours() + ":" + z(d.getMinutes());
@@ -44,7 +52,9 @@ function applyLastUpdated(artboard, lastUpdatedDate) {
         ["[lastupdated-minute]", () => z(d.getMinutes())],
         ["[lastupdated-second]", () => z(d.getSeconds())],
         ["[lastupdated-image]", getLastupdatedImage],
-        ["[lastupdated-increment]", (curValue) => isNaN(curValue) || isNaN(parseInt(curValue))? curValue : (parseInt(curValue)+1).toString()]
+        ["[lastupdated-increment]", (curValue) => isNaN(curValue) || isNaN(parseInt(curValue))? curValue : (parseInt(curValue)+1).toString()],
+        ["[lastupdated-size-bytes]", () => sizeBytes.toString()],
+        ["[lastupdated-is-autosaved]", () => autoSaved.toString()]
     ]);
 
     //loop to iterate on children
