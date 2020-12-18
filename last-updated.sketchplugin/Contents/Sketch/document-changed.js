@@ -21,7 +21,8 @@ const placeholders = [
     "[lastupdated-image]",
     "[lastupdated-increment]",
     "[lastupdated-size-bytes]",
-    "[lastupdated-is-autosaved]"
+    "[lastupdated-is-autosaved]",
+    "[lastupdated-artboard-title]",
 ];
 var onDocumentChanged = function (context) {
     

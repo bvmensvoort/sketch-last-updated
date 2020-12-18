@@ -68,6 +68,10 @@ This plugin didn't exist for some great inspiration:
 <br>
 
 # Releases
+## current
+- Supports artboard title: `[artboard-title]`
+- The document is no longer marked as changed after saving
+
 ## v1.2.0
 - Marks document as changed on document change instead of selection change (finally). This will prevent unnecessary saves and might be a bit faster.
 - Add [size-bytes] and [autosaved] to possible placeholders

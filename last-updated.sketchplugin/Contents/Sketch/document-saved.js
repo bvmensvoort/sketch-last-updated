@@ -36,6 +36,7 @@ function applyLastUpdated(artboard, lastUpdatedDate) {
     let lastupdatedImages = new Map();
     let date = d.getDate() + "-" + (d.getMonth()+1) + "-" + d.getFullYear();
     let time = d.getHours() + ":" + z(d.getMinutes());
+    var artboardTitle = artboard.name().toString();
 
     var replacements = new Map([
         ["[lastupdated]", () => date + " " + time],
@@ -55,7 +56,9 @@ function applyLastUpdated(artboard, lastUpdatedDate) {
         ["[lastupdated-image]", getLastupdatedImage],
         ["[lastupdated-increment]", (curValue) => isNaN(curValue) || isNaN(parseInt(curValue))? curValue : (parseInt(curValue)+1).toString()],
         ["[lastupdated-size-bytes]", () => sizeBytes.toString()],
-        ["[lastupdated-is-autosaved]", () => autoSaved.toString()]
+        ["[lastupdated-is-autosaved]", () => autoSaved.toString()],
+        ["[lastupdated-is-autosaved]", () => autoSaved.toString()],
+        ["[lastupdated-artboard-title]", () => artboardTitle]
     ]);
 
     //loop to iterate on children
