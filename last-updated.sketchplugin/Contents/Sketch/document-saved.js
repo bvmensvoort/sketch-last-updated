@@ -14,16 +14,12 @@ var onDocumentSaved = function (context) {
     sizeBytes = context.actionContext.size;
     autoSaved = context.actionContext.autosaved;
     
-    var changedArtboards = Settings.documentSettingForKey(document, 'last-updated-marked-artboards') || {};
+    var changedArtboards = Settings.sessionVariable('last-updated-marked-artboards') || {};
     document.pages().forEach((page) => {
         page.artboards().forEach((artboard) => {
             let lastUpdatedDate = changedArtboards[artboard.objectID()];
-            if (lastUpdatedDate) {
-                applyWithoutUndo()
-                    .then(function() {
-                        applyLastUpdated(artboard, lastUpdatedDate);
-                    })
-                ;
+            if (lastUpdatedDate) {    
+                applyLastUpdated(artboard, lastUpdatedDate);
             }
         });
     });
@@ -31,23 +27,7 @@ var onDocumentSaved = function (context) {
     if (verbose) console.log("Document saved. After that, placeholders on artboards were updated: ", changedArtboards);
 
     // Remove mark for updated documents
-    applyWithoutUndo()
-        .then(() => {
-            Settings.documentSettingForKey(document, 'last-updated-marked-artboards', {});
-        })
-    ;
-
-    function applyWithoutUndo() {
-        return Promise.resolve();
-        return new Promise((resolve) => {
-            document.historyMaker().ignoreDocumentChangesInBlock(
-                __mocha__.createBlock_function('v8@?0', () => {
-                    // do stuff here that you don't want in the undo stack
-                    resolve();
-                })
-            )
-        });
-    }
+    Settings.setSessionVariable(document, 'last-updated-marked-artboards', {});
 };
 
 

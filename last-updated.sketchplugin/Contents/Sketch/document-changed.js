@@ -118,24 +118,9 @@ var onDocumentChanged = function (context) {
     // Update date in artboard meta info
     function markForUpdate(artboard, date) {
         if (verbose) console.log ("Mark for update", artboard.objectID(), date);
-        var changedArtboards = Settings.documentSettingForKey(document, 'last-updated-marked-artboards') || {};
-        changedArtboards[artboard.objectID()] = date;
-        
-        applyWithoutUndo()
-            .then(() =>{
-                Settings.setDocumentSettingForKey(document, 'last-updated-marked-artboards', changedArtboards);
-            })
-        ;
-    }
 
-    function applyWithoutUndo() {
-        return new Promise((resolve)=> {
-            document.sketchObject.historyMaker().ignoreDocumentChangesInBlock(
-                __mocha__.createBlock_function('v8@?0', () => {
-                    // do stuff here that you don't want in the undo stack
-                    resolve();
-                })
-            )
-        });
+        var changedArtboards = Settings.sessionVariable(document, 'last-updated-marked-artboards') || {};
+        changedArtboards[artboard.objectID()] = date;
+        Settings.setSessionVariable('last-updated-marked-artboards', changedArtboards);
     }
 };
