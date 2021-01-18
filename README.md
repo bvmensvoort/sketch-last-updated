@@ -70,6 +70,7 @@ This plugin didn't exist for some great inspiration:
 # Releases
 ## current
 - Supports artboard title: `[artboard-title]`
+- The placeholders will be updated onDocumentChanged, after 5 seconds
 - The document is no longer marked as changed after saving
 
 ## v1.2.0
