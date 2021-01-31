@@ -1,23 +1,48 @@
+const Sketch = require('sketch');
 const Settings = require('sketch/settings');
 const SESSIONVAR = "last-updated-marked-artboards";
+const SESSIONVAR_IMAGES = "last-updated-images-seeds";
 const verbose = false;
 var savedArtboardsArray;
-var lastupdatedImages = new Map();
+var savedImagesSeedsMap;
+
+function leadingZero(object, targetLength = 2, padString = "0") {
+    return (object + "").padStart(targetLength, padString);
+}
 
 class Lastupdated {
+    // Constructor will be run on every Document change
     constructor(eventName = "OnDocumentChanged") {
-        this.throttleTime = 2000;
         this.eventName = eventName;
-        
+        // Throttle changes per artboard for performance. When doing a change, wait a few seconds to change all placeholders, to
+        // let the system process all code in the background.
+        // When a placeholder is changed, the DocumentChange event will fire, this time with the placeholder as detected change.
+        // If the throttle time is too low (eg 2000ms), the original event will be merged with this placeholder and the event
+        // will fire again. This causes a loop.
+        this.throttleTime = 5000;
     }
     get savedArtboards () {
         // Return unserialized artboards first
-        return savedArtboardsArray 
+        return savedArtboardsArray
             || Settings.sessionVariable(SESSIONVAR) || {};
     }
-    set savedArtboards (value) {
-        savedArtboardsArray = value;    // Save unserialized
-        Settings.setSessionVariable(SESSIONVAR, value); // Save for later use
+    set savedArtboards (newSavedArtboards) {
+        savedArtboardsArray = newSavedArtboards;    // Save unserialized
+        
+        for (const [key, value] of Object.entries(newSavedArtboards || {})) {
+            newSavedArtboards[key].willBeUpdated = false;
+        }
+        Settings.setSessionVariable(SESSIONVAR, newSavedArtboards); // Save for later use
+    }
+
+    get savedImagesSeeds() {
+        return savedImagesSeedsMap
+            || new Map(Object.entries(Settings.sessionVariable(SESSIONVAR_IMAGES) || {}))
+        ;
+    }
+    set savedImagesSeeds(newImagesSeeds) {
+        savedImagesSeedsMap = newImagesSeeds;
+        Settings.setSessionVariable(SESSIONVAR_IMAGES, newImagesSeeds); // Save for later use. Only save seed, not the imagedata
     }
 
     deleteSavedArtboard(artboardId) {
@@ -38,13 +63,18 @@ class Lastupdated {
 
     // Returns an array with objects: {lastModified, artboard}
     getChangedArtboardsFromChanges(changes, document) {
-        
         let changesArray = [];
+        // Convert changes to a JavaScript array
         for (let i=0; i<changes.length; i++) changesArray.push(changes[i]);
         
         return changesArray
-            .map(change => this.getArtboardFromObject(change.object(), change.fullPath(), document))
+            // Ignore property changes of placeholder objects (this could cause a loop)
+            .filter(change => (!this.isChangeAPlaceholder(change.object(),change.fullPath(), document)))
+            // Get the artboards of valid changes
+            .map(change => this.getArtboardFromObject(change.object()))
+            // Clean up array
             .filter(artboard => (typeof artboard !== "undefined" && artboard !== null))
+            // Add metadata
             .map(artboard => ({
                 "lastModified": new Date(),
                 "artboard": artboard
@@ -52,16 +82,31 @@ class Lastupdated {
         ;
     }
 
-    getArtboardFromObject(objRef, fullPath, document) {
+    getArtboardFromObject(objRef) {
         let artboardToSelect = null;
         let layerParentGroup = objRef;
-        let isPlaceholderChanged = false;
-        let self = this;
 
+        //  Get the parent artboard if a layer is selected by the user
+        while (layerParentGroup) {
+            if (layerParentGroup.class() == "MSArtboardGroup") {
+                artboardToSelect = layerParentGroup;
+                break;
+            }
+            layerParentGroup = layerParentGroup.parentGroup();
+        };
+        return artboardToSelect;
+    }
+
+    isChangeAPlaceholder(objRef, fullPath, document, chtype) {
+        let isPlaceholderChanged = false;
+        let layerParentGroup = objRef;
+        var self = this;
+
+        // Detect if reference is an override point
         if (typeof objRef.parentGroup === "undefined") {
+
             // Don't update when override is updated by the plugin itself
             // Otherwise we will be in a loop
-            
 
             // Apparently for MSImmutableRectangleShape there is no 'parentGroup' function
             layerParentGroup = getObjectFromFullPath(fullPath, document);
@@ -71,20 +116,13 @@ class Lastupdated {
                 isPlaceholderChanged = detectPlaceholderInOverride(objRef, layerParentGroup);
                 if (isPlaceholderChanged) {
                     if (verbose) console.log("This change is caused by this plugin, ignore change to prevent a loop.");
-                    return artboardToSelect;
+                    return true;
                 }
             }
         }
-        
-        //get the parent artboard if a layer is selected by the user
-        while (layerParentGroup) {
-            if (layerParentGroup.class() == "MSArtboardGroup") {
-                artboardToSelect = layerParentGroup;
-                break;
-            }
-            layerParentGroup = layerParentGroup.parentGroup();
-        };
-        return artboardToSelect;
+
+        if (verbose) console.log("Is this a placeholder?",  isNameAPlaceholder(layerParentGroup.name(), this), fullPath, layerParentGroup, layerParentGroup.name());
+        return isNameAPlaceholder(layerParentGroup.name(), this);
 
         // Try to get parent based on fullpath
         // Solution from: https://sketchplugins.com/d/1886-ondocumentchange-fullpath/4
@@ -111,7 +149,7 @@ class Lastupdated {
             
             return parent.sketchObject;
         }
-
+        
         function detectPlaceholderInOverride(overrideValueReference, object) {
             let isPlaceholder = false;
             let overrideId = overrideValueReference.overrideName().toString();
@@ -123,33 +161,57 @@ class Lastupdated {
 
             // Check if overridePoint matches a placeholder name
             if (matchingOverridePoint) {
-                isPlaceholder = self.getReplacements("all").get(matchingOverridePoint.layerName().toLowerCase());
+                isPlaceholder = isNameAPlaceholder(matchingOverridePoint.layerName());
             }
 
             return isPlaceholder;
         }
-    
+
+        function isNameAPlaceholder(name) {
+            return !!self.getReplacements("all").get(name.toLowerCase());
+        }
     }
 
     updatePlaceholdersInChangedArtboards(context) {
-        let changedArtboards = this.savedArtboards
+        let changedArtboards = this.savedArtboards;
         for (const [artboardId, lastUpdatedProps] of Object.entries(changedArtboards)) {
             if (!lastUpdatedProps.willBeUpdated) {
                 this.updatePlaceholdersInArtboard(artboardId, lastUpdatedProps, context);
             }
             changedArtboards[artboardId].willBeUpdated = true;
+            this.savedArtboards = changedArtboards;
         };
     }
 
-    async updatePlaceholdersInArtboard(artboardId, lastUpdatedProps, context) {
+    updatePlaceholdersInArtboard(artboardId, lastUpdatedProps, context) {
         var self = this;
+        if (verbose) console.log("updatePlaceholdersInArtboard, Wait", self.throttleTime);
         return new Promise((resolve) => {
             setTimeout(() => {
-                self.applyLastUpdated(lastUpdatedProps.artboard, self.savedArtboards[artboardId].lastModified, context);
+                // In the meantime a parallel change could be finished, or something.
+                if (typeof self.savedArtboards[artboardId] === "undefined") { resolve(); return; }
+
+                self.applyLastUpdatedOnArtboard(lastUpdatedProps.artboard, self.savedArtboards[artboardId].lastModified);
                 self.deleteSavedArtboard(artboardId);
                 resolve();
             }, self.throttleTime);
         });
+    }
+
+    isSeedChanged(layerId, newSeed) {
+        let savedImagesSeeds = this.savedImagesSeeds;
+
+        if (verbose) {
+            if (!savedImagesSeeds.has(layerId)) {
+                console.log("isSeedChanged: no old seed", layerId);
+            } else {
+                console.log("isSeedChanged: ",  (savedImagesSeeds.get(layerId).seed !== newSeed) ," old seed and new seed:", savedImagesSeeds.get(layerId).seed, newSeed, layerId)
+            }
+        }
+
+        return !savedImagesSeeds.has(layerId) 
+            || savedImagesSeeds.get(layerId).seed !== newSeed
+        ;
     }
 
     getReplacements(eventName = this.eventName, replacementValues) {
@@ -177,7 +239,7 @@ class Lastupdated {
                 ["[lastupdated-hour]", () => d.getHours().toString()],
                 ["[lastupdated-minute]", () => z(d.getMinutes())],
                 ["[lastupdated-second]", () => z(d.getSeconds())],
-                ["[lastupdated-image]", () => getLastupdatedImage(date +" "+ time)],
+                ["[lastupdated-image]", (curSeed, layerId, self) => {return getLastupdatedImage(curSeed, layerId, self)}],
                 ["[lastupdated-increment]", (curValue) => isNaN(curValue) || isNaN(parseInt(curValue))? curValue : (parseInt(curValue)+1).toString()],
                 ["[lastupdated-artboard-title]", () => artboard.name().toString()]
             ]),
@@ -190,25 +252,21 @@ class Lastupdated {
 
         return eventName !== "all"?
             replacements[eventName] :
-            new Map([...replacements["OnDocumentChanged"]].concat([...replacements["OnDocumentSaved"]]));
+            new Map([...replacements["OnDocumentChanged"]].concat([...replacements["OnDocumentSaved"]]))
+        ;
 
-        function leadingZero(object, targetLength = 2, padString = "0") {
-            return (object + "").padStart(targetLength, padString);
-        }
-
-        function getLastupdatedImage(seed, layerId) {
-            // Don't generate image if seed is not changed (for performance)
-            if (lastupdatedImages.has(layerId) && lastupdatedImages.get(layerId).seed===seed) { 
-                return lastupdatedImages.get(layerId).image;
-            }
+        function getLastupdatedImage(seed, layerId, self) {
+            if (verbose) console.log('Generate a new image with seed:', seed);
     
-            // Generate image
-            let image = getImage(seed);
-            lastupdatedImages.set(layerId,{seed, image});
+            // Save new seed first, to prevent timing issues (another change is incoming while still drawing new image)
+            let savedImages = self.savedImagesSeeds;
+            savedImages.set(layerId,{seed})
+            self.savedImagesSeeds = savedImages;
+            let image = generateImage(seed);
             return image;
         }
 
-        function getImage(seed) {
+        function generateImage(seed) {
             const base64Image = generateImage(seed);
             var imageData = NSData.alloc().initWithBase64EncodedString_options(base64Image, NSDataBase64DecodingIgnoreUnknownCharacters);
             var image = NSImage.alloc().initWithData(imageData);
@@ -272,23 +330,25 @@ class Lastupdated {
         }
     }
 
-    applyLastUpdated(artboard, lastUpdatedDate, context) {
+    applyLastUpdatedOnArtboard(artboard, lastUpdatedDate) {
         let replacements = this.getReplacements(this.eventName, {lastUpdatedDate, artboard});
         let replacementPromises = [];
+        let self = this;
 
-        //loop to iterate on children
+        if (verbose) console.log("applyLastUpdatedOnArtboard, for artboard: ", artboard, "Last updated date: "+ lastUpdatedDate);
+        // Loop to iterate on children
         for (let i = 0; i < artboard.children().length; i++) {
             let sublayer = artboard.children()[i];
     
             replacements.forEach((replacementValue, replacementKey) => {
                 if (sublayer.name().toLowerCase() === replacementKey) { 
-                    replacementPromises.push(replaceObject(sublayer, replacementKey, replacementValue, lastUpdatedDate));
+                    replacementPromises.push(replaceObject(sublayer, replacementKey, replacementValue, lastUpdatedDate, self));
                 }
                 else if (sublayer.hasOwnProperty("overrides")) {
                     sublayer.overridePoints().forEach(function (overridePoint) {
                         // Some code how to set overrides: https://sketchplugins.com/d/385-viewing-all-overrides-for-a-symbol/7
                         if (overridePoint.layerName().toLowerCase() === replacementKey) {
-                            replacementPromises.push(replaceOverride(sublayer, overridePoint, replacementKey, replacementValue, lastUpdatedDate));
+                            replacementPromises.push(replaceOverride(sublayer, overridePoint, replacementKey, replacementValue, lastUpdatedDate, self));
                         }
                     });
                 }
@@ -297,24 +357,26 @@ class Lastupdated {
 
         return Promise.all(replacementPromises);
 
-        function replaceObject(sublayer, replacementKey, replacementValue, lastUpdatedDate) {
+        function replaceObject(sublayer, replacementKey, replacementValue, lastUpdatedDate, self) {
+            if (verbose) console.log("replaceObject, for object:", sublayer, "For key: " +replacementKey, "Last updated: "+ lastUpdatedDate);
+
             return new Promise((resolve) => {
                 let layerId = sublayer.objectID();
                 if (replacementKey === "[lastupdated-image]") {
-                    let seed = getImageSeed(lastUpdatedDate);
-
+                    let seed = generateImageSeed(lastUpdatedDate);
                     // Validate
                     // Don't do anything if image result will be the same. Performance optimization
-                    if (lastupdatedImages.has(layerId) && lastupdatedImages.get(layerId).seed===seed) { return; }
-
+                    if (!self.isSeedChanged(layerId, seed)) { return; }
+                    
                     // It is not possible to set fills on Images
                     var layerFill = sublayer.style().fills();
                     if (!layerFill.length) { return; }
-
+                    
                     layerFill = layerFill.firstObject();
                     layerFill.setFillType(4);
                     layerFill.setPatternFillType(1);
-                    layerFill.setImage(MSImageData.alloc().initWithImage(replacementValue(seed, layerId)));
+                    let newImageData = replacementValue(seed, layerId, self);
+                    layerFill.setImage(MSImageData.alloc().initWithImage(newImageData));
                 } else {
                     let curValue = sublayer.stringValue();
                     let newValue = replacementValue(curValue);
@@ -323,12 +385,13 @@ class Lastupdated {
                 resolve();
             });
         }
-        function replaceOverride(sublayer, overridePoint, replacementKey, replacementValue) {
+        function replaceOverride(sublayer, overridePoint, replacementKey, replacementValue, self) {
+            if (verbose) console.log("replaceOverride, for object:", sublayer, overridePoint, "For key: " +replacementKey, "Last updated: "+ lastUpdatedDate);
             return new Promise((resolve) => {
                 if (replacementKey === "[lastupdated-image]") {
                     // Don't do anything if image result will be the same. Performance optimization
-                    let seed = getImageSeed(lastUpdatedDate);
-                    if (lastupdatedImages.has(layerId) && lastupdatedImages.get(layerId).seed===seed) { return; }
+                    let seed = generateImageSeed(lastUpdatedDate);
+                    if (!self.isSeedChanged(layerId, seed)) { return; }
 
                     // Some code how to replace image overrides: https://sketchplugins.com/d/794-how-do-you-update-an-override-with-a-new-image/6    
                     let imageData = MSImageData.alloc().initWithImage(replacementValue(seed, layerId));
@@ -343,7 +406,9 @@ class Lastupdated {
             }); 
         }
 
-        function getImageSeed(seedDate) {
+        // Generate a seed to summarize the contents of the image
+        // Because it takes a while to process a change, use an image based on minutes instead of seconds
+        function generateImageSeed(seedDate) {
             let d = new Date(seedDate);
             let date = d.getDate() + "-" + (d.getMonth()+1) + "-" + d.getFullYear();
             let time = d.getHours() + ":" + leadingZero(d.getMinutes());

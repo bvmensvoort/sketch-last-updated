@@ -7,16 +7,17 @@ const lastupdated = new Lastupdated("OnDocumentChanged");
 const verbose = false;
 
 var onDocumentChanged = function (context) {
-    if (verbose) console.log("On document changed", context.actionContext, lastupdated);
-
+    if (verbose) console.log("--- Begin of change ---", context.actionContext)
     var document = Sketch.getSelectedDocument();
 
     let changes = context.actionContext;
     let changedArtboards = lastupdated.getChangedArtboardsFromChanges(changes, document);
-    if (verbose) console.log("2nd", changedArtboards, lastupdated);
+    if (verbose) console.log("Get changed artboard from changes, result: ", changedArtboards, lastupdated);
     
     lastupdated.mergeChangedArtboardsWith(changedArtboards);
-    if (verbose) console.log("3rd", changedArtboards, lastupdated);
+    if (verbose) console.log("Merge changed artboards with, result: ", changedArtboards, lastupdated);
+    
     lastupdated.updatePlaceholdersInChangedArtboards(context);
+    if (verbose) console.log("--- End of change ---")
     return;
 };
