@@ -69,7 +69,7 @@ class Lastupdated {
         
         return changesArray
             // Ignore property changes of placeholder objects (this could cause a loop)
-            .filter(change => (!this.isChangeAPlaceholder(change.object(),change.fullPath(), document)))
+            .filter(change => (this.isChangeAPlaceholder(change.object(),change.fullPath(), document) === false))
             // Get the artboards of valid changes
             .map(change => this.getArtboardFromObject(change.object()))
             // Clean up array
@@ -92,6 +92,7 @@ class Lastupdated {
                 artboardToSelect = layerParentGroup;
                 break;
             }
+            if (typeof layerParentGroup.parentGroup === "undefined") break;
             layerParentGroup = layerParentGroup.parentGroup();
         };
         return artboardToSelect;
@@ -111,6 +112,9 @@ class Lastupdated {
             // Apparently for MSImmutableRectangleShape there is no 'parentGroup' function
             layerParentGroup = getObjectFromFullPath(fullPath, document);
 
+            // If no object is found, return neither true or false
+            if (layerParentGroup === null) return undefined;
+
             // Skip change when it is a [lastupdated] placeholder
             if (objRef.class().toString() == "MSOverrideValue") {    // === doesn't work for some reason
                 isPlaceholderChanged = detectPlaceholderInOverride(objRef, layerParentGroup);
@@ -127,8 +131,14 @@ class Lastupdated {
         // Try to get parent based on fullpath
         // Solution from: https://sketchplugins.com/d/1886-ondocumentchange-fullpath/4
         function getObjectFromFullPath(fullPath, document) {
+            let path = fullPath.split('.')
+            
+            // Prevent exceptions
+            // eg. foreignSymbols[61]
+            if (path.length === 0) return null;
+
             // Remove item after last . to get parent
-            let path = fullPath.split('.').slice(0, -1);
+            path = path.slice(0, -1);
 
             // If a style is changed
             // eg. pages[0].layers[0].layers[1].style.fills[0].pattern.image
@@ -144,6 +154,7 @@ class Lastupdated {
             }
 
             // Stitch it together and parse the object
+            // eg. document["pages"][2]["layers"][3]
             let parent =  path.reduce(
                 (acc, cur) => acc[cur.match(/\w*/)[0]][cur.match(/\d+/)[0]], document)
             
