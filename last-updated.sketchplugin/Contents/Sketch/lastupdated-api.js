@@ -4,7 +4,11 @@ const SESSIONVAR = "last-updated-marked-artboards";
 const SESSIONVAR_IMAGES = "last-updated-images-seeds";
 const verbose = false;
 var savedArtboardsArray;
+const SESSIONVAR_INCREMENT = "last-updated-increment-artboards";
+var savedArtboardsObject;
 var savedImagesSeedsMap;
+var savedIncrementArtboardsSet;
+var savedArtboardsForDocumentSavedSet;
 
 function leadingZero(object, targetLength = 2, padString = "0") {
     return (object + "").padStart(targetLength, padString);
@@ -19,23 +23,34 @@ class Lastupdated {
         // When a placeholder is changed, the DocumentChange event will fire, this time with the placeholder as detected change.
         // If the throttle time is too low (eg 2000ms), the original event will be merged with this placeholder and the event
         // will fire again. This causes a loop.
-        this.throttleTime = 5000;
+        this.throttleTime = (eventName === "OnDocumentChanged"? 5000 : 0);
+
+        this.document = {};     // Should be filled by every event
+        this.sizeBytes = "";    // Should be filled for event onDocumentSaved
+        this.autoSaved = "";    // Should be filled for event onDocumentSaved
     }
-    get savedArtboards () {
+    get savedArtboards() {
+        // Format:
+        // [[artboardId],[{lastModified, ?willBeUpdated, ?artboard}]]
         // Return unserialized artboards first
         return savedArtboardsArray
+        return savedArtboardsObject
             || Settings.sessionVariable(SESSIONVAR) || {};
     }
-    set savedArtboards (newSavedArtboards) {
-        savedArtboardsArray = newSavedArtboards;    // Save unserialized
+    set savedArtboards(newSavedArtboards) {
+        let sessionSavedArtboards = {};
+        savedArtboardsObject = newSavedArtboards;    // Save unserialized
         
-        for (const [key, value] of Object.entries(newSavedArtboards || {})) {
-            newSavedArtboards[key].willBeUpdated = false;
+        for (const [artboardId, value] of Object.entries(newSavedArtboards)) {
+            sessionSavedArtboards[artboardId] = { ... value};
+            delete sessionSavedArtboards[artboardId].artboard;
         }
-        Settings.setSessionVariable(SESSIONVAR, newSavedArtboards); // Save for later use
+        Settings.setSessionVariable(SESSIONVAR, sessionSavedArtboards); // Save for later use
     }
 
     get savedImagesSeeds() {
+        // Format:
+        // Map([artboardId, seed])
         return savedImagesSeedsMap
             || new Map(Object.entries(Settings.sessionVariable(SESSIONVAR_IMAGES) || {}))
         ;
@@ -43,6 +58,19 @@ class Lastupdated {
     set savedImagesSeeds(newImagesSeeds) {
         savedImagesSeedsMap = newImagesSeeds;
         Settings.setSessionVariable(SESSIONVAR_IMAGES, newImagesSeeds); // Save for later use. Only save seed, not the imagedata
+    }
+
+    get savedIncrementArtboards() {
+        // Format:
+        // [artboardId]
+        return savedIncrementArtboardsSet
+            || new Set(Settings.sessionVariable(SESSIONVAR_INCREMENT) || [])
+        ;
+    }
+
+    set savedIncrementArtboards(newIncrementArtboards) {
+        savedIncrementArtboardsSet = newIncrementArtboards;
+        Settings.setSessionVariable(SESSIONVAR_INCREMENT, Array.from(newIncrementArtboards)); // Save for later use.
     }
 
     deleteSavedArtboard(artboardId) {
@@ -66,9 +94,11 @@ class Lastupdated {
         let changesArray = [];
         // Convert changes to a JavaScript array
         for (let i=0; i<changes.length; i++) changesArray.push(changes[i]);
-        
+
         return changesArray
             // Ignore property changes of placeholder objects (this could cause a loop)
+            // Only ignore when a non-placeholder object
+            // This prevents library updates to trigger 
             .filter(change => (this.isChangeAPlaceholder(change.object(),change.fullPath(), document) === false))
             // Get the artboards of valid changes
             .map(change => this.getArtboardFromObject(change.object()))
@@ -131,11 +161,12 @@ class Lastupdated {
         // Try to get parent based on fullpath
         // Solution from: https://sketchplugins.com/d/1886-ondocumentchange-fullpath/4
         function getObjectFromFullPath(fullPath, document) {
-            let path = fullPath.split('.')
-            
+            let path = fullPath.split('.');
+
             // Prevent exceptions
             // eg. foreignSymbols[61]
             if (path.length === 0) return null;
+            if (path[0].indexOf("foreignSymbols") === 0) return null;
 
             // Remove item after last . to get parent
             path = path.slice(0, -1);
@@ -154,9 +185,10 @@ class Lastupdated {
             }
 
             // Stitch it together and parse the object
-            // eg. document["pages"][2]["layers"][3]
+            // Returns object of string. Eg. ["pages[2]", "layers[3]"] becomes document["pages"][2]["layers"][3]
             let parent =  path.reduce(
                 (acc, cur) => acc[cur.match(/\w*/)[0]][cur.match(/\d+/)[0]], document)
+            ;
             
             return parent.sketchObject;
         }
@@ -194,7 +226,7 @@ class Lastupdated {
         };
     }
 
-    updatePlaceholdersInArtboard(artboardId, lastUpdatedProps, context) {
+    updatePlaceholdersInArtboard(artboardId, lastUpdatedProps) {
         var self = this;
         if (verbose) console.log("updatePlaceholdersInArtboard, Wait", self.throttleTime);
         return new Promise((resolve) => {
@@ -202,7 +234,7 @@ class Lastupdated {
                 // In the meantime a parallel change could be finished, or something.
                 if (typeof self.savedArtboards[artboardId] === "undefined") { resolve(); return; }
 
-                self.applyLastUpdatedOnArtboard(lastUpdatedProps.artboard, self.savedArtboards[artboardId].lastModified);
+                self.applyLastUpdatedOnArtboard(lastUpdatedProps.artboard, self.savedArtboards[artboardId].lastModified, artboardId);
                 self.deleteSavedArtboard(artboardId);
                 resolve();
             }, self.throttleTime);
@@ -227,8 +259,10 @@ class Lastupdated {
 
     getReplacements(eventName = this.eventName, replacementValues) {
         let d, date, time;
+        let self = this;
         if (replacementValues) {
             var artboard = replacementValues.artboard;
+            var artboardId = replacementValues.artboardId;
             d = new Date(replacementValues.lastUpdatedDate);
             date = d.getDate() + "-" + (d.getMonth()+1) + "-" + d.getFullYear();
             time = d.getHours() + ":" + leadingZero(d.getMinutes());
@@ -251,13 +285,13 @@ class Lastupdated {
                 ["[lastupdated-minute]", () => z(d.getMinutes())],
                 ["[lastupdated-second]", () => z(d.getSeconds())],
                 ["[lastupdated-image]", (curSeed, layerId, self) => {return getLastupdatedImage(curSeed, layerId, self)}],
-                ["[lastupdated-increment]", (curValue) => isNaN(curValue) || isNaN(parseInt(curValue))? curValue : (parseInt(curValue)+1).toString()],
+                ["[lastupdated-increment]", (curValue) => {return getLastupdatedIncrement(curValue, eventName, artboardId, self)}],
                 ["[lastupdated-artboard-title]", () => artboard.name().toString()]
             ]),
             "OnDocumentSaved": new Map([
-                ["[lastupdated-increment-onsave]", (curValue) => isNaN(curValue) || isNaN(parseInt(curValue))? curValue : (parseInt(curValue)+1).toString()],
-                ["[lastupdated-size-bytes]", () => context.actionContext.size.toString()],
-                ["[lastupdated-is-autosaved]", () => context.actionContext.autosaved.toString()]
+                ["[lastupdated-increment]", (curValue) => {return getLastupdatedIncrement(curValue, eventName, artboardId, self)}],
+                ["[lastupdated-size-bytes]", () => self.sizeBytes.toString()],
+                ["[lastupdated-is-autosaved]", () => self.autoSaved.toString()]
             ])
         };
 
@@ -265,6 +299,19 @@ class Lastupdated {
             replacements[eventName] :
             new Map([...replacements["OnDocumentChanged"]].concat([...replacements["OnDocumentSaved"]]))
         ;
+        
+        function getLastupdatedIncrement(curValue, eventName, artboardId, self) {
+            let increments = self.savedIncrementArtboards;
+            if (eventName === "OnDocumentChanged") {
+                // If increment is already increased before saving, do nothing
+                if (increments.has(artboardId)) return curValue;
+                // Add artboardId to the list, so it won't be updated next documentChanged and will be deleted on save
+                increments.add(artboardId);
+                self.savedIncrementArtboards = increments;
+            }
+            // In case of an unknown event, just return a new value
+            return isNaN(curValue) || isNaN(parseInt(curValue))? curValue : (parseInt(curValue)+1).toString()
+        }
 
         function getLastupdatedImage(seed, layerId, self) {
             if (verbose) console.log('Generate a new image with seed:', seed);
@@ -341,8 +388,8 @@ class Lastupdated {
         }
     }
 
-    applyLastUpdatedOnArtboard(artboard, lastUpdatedDate) {
-        let replacements = this.getReplacements(this.eventName, {lastUpdatedDate, artboard});
+    applyLastUpdatedOnArtboard(artboard, lastUpdatedDate, artboardId) {
+        let replacements = this.getReplacements(this.eventName, {lastUpdatedDate, artboard, artboardId});
         let replacementPromises = [];
         let self = this;
 
@@ -386,7 +433,7 @@ class Lastupdated {
                     layerFill = layerFill.firstObject();
                     layerFill.setFillType(4);
                     layerFill.setPatternFillType(1);
-                    let newImageData = replacementValue(seed, layerId, self);
+                    let newImageData = replacementValue(seed, layerId);
                     layerFill.setImage(MSImageData.alloc().initWithImage(newImageData));
                 } else {
                     let curValue = sublayer.stringValue();
