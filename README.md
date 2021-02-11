@@ -73,6 +73,7 @@ This plugin didn't exist for some great inspiration:
 - Supports artboard title: `[artboard-title]`
 - Most placeholders will be updated onDocumentChanged, after 5 seconds
 - Only [size-bytes] and [autosaved] are updated onDocumentSaved
+- An update is not triggered anymore when changing placeholders (to prevent loops)
 - The document is no longer marked as changed after saving (except when using [size-bytes] and [autosaved])
 
 ## v1.2.0
