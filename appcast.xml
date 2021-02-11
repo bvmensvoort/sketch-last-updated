@@ -3,9 +3,19 @@
         <title>Last-updated plugin change log</title>
         <link>https://raw.githubusercontent.com/bvmensvoort/sketch-last-updated/master/appcast.xml</link>
         <description>
-        Most recent changes to last-updated pluging for Sketch
+        Most recent changes to last-updated plugin for Sketch
         </description>
         <language>en</language>
+        <item>
+            <title>Version 1.3</title>
+            <description>
+            - Supports artboard title: `[artboard-title]`
+            - Most placeholders will be updated onDocumentChanged, after 5 seconds
+            - Only [size-bytes] and [autosaved] are updated onDocumentSaved
+            - The document is no longer marked as changed after saving (except when using [size-bytes] and [autosaved])
+            </description>
+            <enclosure url="https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.3.0/sketch-last-updated-1.3.0.zip" sparkle:version="0.1"/>
+        </item>
         <item>
             <title>Version 1.2</title>
             <description>

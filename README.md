@@ -7,7 +7,7 @@ Sketch plugin to update placeholders with with metadata about last save, such as
 # Installation
 
 1. Download  
-[latest .zip file](https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.2.0/sketch-last-updated-1.2.0.zip) or via [releases page](https://github.com/bvmensvoort/sketch-last-updated/releases).
+[latest .zip file](https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.3.0/sketch-last-updated-1.3.0.zip) or via [releases page](https://github.com/bvmensvoort/sketch-last-updated/releases).
 2. Unzip and double click to install it.
 
 <br>
@@ -52,10 +52,11 @@ Placeholders which the plugin monitors (on January, 31st 2020 at 3:31:59 PM):
 * `[lastupdated-hour]` : 15
 * `[lastupdated-minute]` :  31
 * `[lastupdated-second]` :  59
-* `[lastupdated-image]` :  [Blockies](https://github.com/download13/blockies) image,
-* `[lastupdated-increment]` :  1
-* `[lastupdated-size-bytes]` :  237234
-* `[lastupdated-is-autosaved]` :  0
+* `[lastupdated-image]` :  [Blockies](https://github.com/download13/blockies) image
+* `[lastupdated-artboard-title]` : Artboard Wizzy3
+* `[lastupdated-increment]` :  1 - this is updated once per document save
+* `[lastupdated-size-bytes]` :  237234 - this is updated on document save
+* `[lastupdated-is-autosaved]` :  0 - this is updated on document save
 
 The placeholders are updated on elements or symbol overrides inside an artboard.
 Note: `[lastupdated-image]` can only be used on shapes (like a rectangle) on the artboard, or on images within a symbol.
@@ -68,10 +69,11 @@ This plugin didn't exist for some great inspiration:
 <br>
 
 # Releases
-## current
+## v1.3.0
 - Supports artboard title: `[artboard-title]`
-- The placeholders will be updated onDocumentChanged, after 5 seconds
-- The document is no longer marked as changed after saving
+- Most placeholders will be updated onDocumentChanged, after 5 seconds
+- Only [size-bytes] and [autosaved] are updated onDocumentSaved
+- The document is no longer marked as changed after saving (except when using [size-bytes] and [autosaved])
 
 ## v1.2.0
 - Marks document as changed on document change instead of selection change (finally). This will prevent unnecessary saves and might be a bit faster.
