@@ -10,6 +10,8 @@ var onDocumentChanged = function (context) {
     if (verbose) console.log("--- Begin of change ---", context.actionContext)
     var document = Sketch.getSelectedDocument();
 
+    lastupdated.document = document.sketchObject;
+
     let changes = context.actionContext;
     let changedArtboards = lastupdated.getChangedArtboardsFromChanges(changes, document);
     if (verbose) console.log("Get changed artboard from changes, result: ", changedArtboards, lastupdated);

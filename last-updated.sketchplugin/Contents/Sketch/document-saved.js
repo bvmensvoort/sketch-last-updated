@@ -1,5 +1,8 @@
 const sketch = require('sketch');
 const Settings = require('sketch/settings');
+const Lastupdated = require('./lastupdated-api');
+const lastupdated = new Lastupdated("OnDocumentSaved");
+
 var sizeBytes;
 var autoSaved;
 const verbose = false;
@@ -13,6 +16,27 @@ var onDocumentSaved = function (context) {
     document = context.actionContext.document;
     sizeBytes = context.actionContext.size;
     autoSaved = context.actionContext.autosaved;
+
+    // First delete all saved
+    updateIncrements();
+    //return;
+
+    // Updates for [lastupdated-size-bytes] and [lastupdated-is-autosaved]
+    updatedChangedArtboards();
+    return;
+
+    function updateIncrements() {
+        // Remove from the list, so it will be updated on next documentChanged
+        lastupdated.savedIncrementArtboards = [];
+    }
+
+    function updatedChangedArtboards() {
+        lastupdated.document = document;
+        // When using this feature, a resave is needed, because the values are updated only after the save
+        lastupdated.sizeBytes = sizeBytes;
+        lastupdated.autoSaved = autoSaved;
+        lastupdated.updatePlaceholdersInChangedArtboards();
+    }
     
     var changedArtboards = Settings.sessionVariable('last-updated-marked-artboards') || {};
     document.pages().forEach((page) => {

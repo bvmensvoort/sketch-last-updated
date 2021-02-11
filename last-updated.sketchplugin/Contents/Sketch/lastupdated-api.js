@@ -2,13 +2,13 @@ const Sketch = require('sketch');
 const Settings = require('sketch/settings');
 const SESSIONVAR = "last-updated-marked-artboards";
 const SESSIONVAR_IMAGES = "last-updated-images-seeds";
-const verbose = false;
-var savedArtboardsArray;
 const SESSIONVAR_INCREMENT = "last-updated-increment-artboards";
+const SESSIONVAR_DOCUMENTSAVED = "last-updated-artboards-document-saved";
+const verbose = false;
 var savedArtboardsObject;
 var savedImagesSeedsMap;
 var savedIncrementArtboardsSet;
-var savedArtboardsForDocumentSavedSet;
+var savedArtboardsForDocumentSavedObject;
 
 function leadingZero(object, targetLength = 2, padString = "0") {
     return (object + "").padStart(targetLength, padString);
@@ -31,9 +31,8 @@ class Lastupdated {
     }
     get savedArtboards() {
         // Format:
-        // [[artboardId],[{lastModified, ?willBeUpdated, ?artboard}]]
+        // {artboardId: {lastModified, ?willBeUpdated, ?artboard}}
         // Return unserialized artboards first
-        return savedArtboardsArray
         return savedArtboardsObject
             || Settings.sessionVariable(SESSIONVAR) || {};
     }
@@ -71,6 +70,18 @@ class Lastupdated {
     set savedIncrementArtboards(newIncrementArtboards) {
         savedIncrementArtboardsSet = newIncrementArtboards;
         Settings.setSessionVariable(SESSIONVAR_INCREMENT, Array.from(newIncrementArtboards)); // Save for later use.
+    }
+
+    get savedArtboardsForDocumentSaved() {
+        // Format:
+        // {artboardId: {lastModified, ?willBeUpdated, ?artboard}}
+        // Return unserialized artboards first
+        return savedArtboardsForDocumentSavedObject
+            || Settings.sessionVariable(SESSIONVAR_DOCUMENTSAVED) || {};
+    }
+    set savedArtboardsForDocumentSaved(newSavedArtboards) {
+        savedArtboardsForDocumentSavedObject = newSavedArtboards;    // Save unserialized
+        Settings.setSessionVariable(SESSIONVAR_DOCUMENTSAVED, newSavedArtboards); // Save for later use
     }
 
     deleteSavedArtboard(artboardId) {
@@ -161,6 +172,7 @@ class Lastupdated {
         // Try to get parent based on fullpath
         // Solution from: https://sketchplugins.com/d/1886-ondocumentchange-fullpath/4
         function getObjectFromFullPath(fullPath, document) {
+            if (verbose) console.log("Change from:", fullPath);
             let path = fullPath.split('.');
 
             // Prevent exceptions
@@ -216,8 +228,13 @@ class Lastupdated {
     }
 
     updatePlaceholdersInChangedArtboards(context) {
-        let changedArtboards = this.savedArtboards;
+        let changedArtboards = (this.eventName === "OnDocumentChanged"? this.savedArtboards: this.savedArtboardsForDocumentSaved);
+        if (verbose) console.log("updatePlaceholdersInChangedArtboards2:", changedArtboards, this.document, this.document.getLayerWithID);
         for (const [artboardId, lastUpdatedProps] of Object.entries(changedArtboards)) {
+            if (!lastUpdatedProps.artboard) {
+                // Get artboard from artboardId
+                lastUpdatedProps.artboard = this.document.documentData().layerWithID(artboardId);
+            }
             if (!lastUpdatedProps.willBeUpdated) {
                 this.updatePlaceholdersInArtboard(artboardId, lastUpdatedProps, context);
             }
@@ -282,8 +299,8 @@ class Lastupdated {
                 ["[lastupdated-day]", () => d.getDay().toString()],
                 ["[lastupdated-day-str]", () => ["mon","tue","wed","thu","fri","sat","sun"][d.getDay()]],
                 ["[lastupdated-hour]", () => d.getHours().toString()],
-                ["[lastupdated-minute]", () => z(d.getMinutes())],
-                ["[lastupdated-second]", () => z(d.getSeconds())],
+                ["[lastupdated-minute]", () => leadingZero(d.getMinutes())],
+                ["[lastupdated-second]", () => leadingZero(d.getSeconds())],
                 ["[lastupdated-image]", (curSeed, layerId, self) => {return getLastupdatedImage(curSeed, layerId, self)}],
                 ["[lastupdated-increment]", (curValue) => {return getLastupdatedIncrement(curValue, eventName, artboardId, self)}],
                 ["[lastupdated-artboard-title]", () => artboard.name().toString()]
@@ -389,30 +406,75 @@ class Lastupdated {
     }
 
     applyLastUpdatedOnArtboard(artboard, lastUpdatedDate, artboardId) {
-        let replacements = this.getReplacements(this.eventName, {lastUpdatedDate, artboard, artboardId});
-        let replacementPromises = [];
+        // Ignore artboards not on this document
+        if (artboard === null) return;
+
         let self = this;
+        let replacements = this.getReplacements(this.eventName, {lastUpdatedDate, artboard, artboardId});
+        let replacementsDocumentSavedKeys = Array.from(this.getReplacements("OnDocumentSaved", {lastUpdatedDate, artboard, artboardId}).keys());
+        let replacementPromises = [];
+        
+        // Only needed once per artboard
+        // Don't search for documentSavedPlaceholders if this artboard is already marked for update
+        let isPlaceholderForDocumentSavedFound = (typeof this.savedArtboardsForDocumentSaved[artboardId] !== "undefined");
 
         if (verbose) console.log("applyLastUpdatedOnArtboard, for artboard: ", artboard, "Last updated date: "+ lastUpdatedDate);
         // Loop to iterate on children
         for (let i = 0; i < artboard.children().length; i++) {
             let sublayer = artboard.children()[i];
+            let sublayerName = sublayer.name().toLowerCase();
+            let overridePoints = (sublayer.hasOwnProperty("overrides")? sublayer.overridePoints() : undefined);
+            let isPlaceholderFound = false;
     
+            // For each replacement check if object or its override matches
             replacements.forEach((replacementValue, replacementKey) => {
-                if (sublayer.name().toLowerCase() === replacementKey) { 
+                // Check if object itself is a placeholder
+                if (sublayerName === replacementKey) { 
                     replacementPromises.push(replaceObject(sublayer, replacementKey, replacementValue, lastUpdatedDate, self));
+                    isPlaceholderFound = true;
                 }
-                else if (sublayer.hasOwnProperty("overrides")) {
-                    sublayer.overridePoints().forEach(function (overridePoint) {
+                // Check if object has overrides which are placeholders
+                else if (!!overridePoints) {
+                    overridePoints.forEach(function (overridePoint) {
                         // Some code how to set overrides: https://sketchplugins.com/d/385-viewing-all-overrides-for-a-symbol/7
                         if (overridePoint.layerName().toLowerCase() === replacementKey) {
                             replacementPromises.push(replaceOverride(sublayer, overridePoint, replacementKey, replacementValue, lastUpdatedDate, self));
+                            isPlaceholderFound = true;
                         }
                     });
                 }
             });
-        };
+            if (isPlaceholderFound) continue;
+            
+            // When a DocumentSaved-placeholder is not found yet for this artboard
+            // And the current object is not a placeholder
+            if (!isPlaceholderForDocumentSavedFound && this.eventName !== "OnDocumentSaved") {
 
+                // Check if object itself is a DocumentSaved-placeholder
+                isPlaceholderForDocumentSavedFound = (replacementsDocumentSavedKeys.indexOf(sublayerName) > -1);
+                
+                // Check if object has overrides of DocumentSaved-placeholders
+                if (!isPlaceholderForDocumentSavedFound && !!overridePoints) {
+                    isPlaceholderForDocumentSavedFound = !!sublayer.overridePoints().find((overridePoint) => (
+                        replacementsDocumentSavedKeys.indexOf(overridePoint.layerName().toLowerCase()) > -1
+                    ));
+                }
+
+                // When a DocumentSaved-placeholder is found
+                if (isPlaceholderForDocumentSavedFound) {
+                    let artboards = this.savedArtboardsForDocumentSaved;
+                    artboards[artboardId] = {};
+                    this.savedArtboardsForDocumentSaved = artboards;
+                    if (verbose) console.log('applyLastUpdatedOnArtboard Found DocumentSavedPlaceholder! Save artboards for document saved', sublayerName, this.savedArtboardsForDocumentSaved);
+                }
+            }
+        };
+        // Prevent another update when an artboard is not changed
+        if (this.eventName === "OnDocumentSaved") {
+            let artboards = this.savedArtboardsForDocumentSaved;
+            delete artboards[artboardId];
+            this.savedArtboardsForDocumentSaved = artboards;
+        }
         return Promise.all(replacementPromises);
 
         function replaceObject(sublayer, replacementKey, replacementValue, lastUpdatedDate, self) {
