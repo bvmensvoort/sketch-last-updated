@@ -32,7 +32,7 @@ For the version indicator, you can use date/time, use a generated image or use a
 2. Insert an artboard
 3. Insert a text layer inside this artboard
 3. Name it `[lastupdated]` (or one of the other supported strings)
-4. Select a different element on the artboard
+4. Create or move a different element on the artboard
 5. The text layer will update its value
 
 ## Usage
