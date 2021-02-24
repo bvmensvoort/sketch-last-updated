@@ -53,7 +53,8 @@ Placeholders which the plugin monitors (on January, 31st 2020 at 3:31:59 PM):
 * `[lastupdated-minute]` :  31
 * `[lastupdated-second]` :  59
 * `[lastupdated-image]` :  [Blockies](https://github.com/download13/blockies) image
-* `[lastupdated-artboard-title]` : Artboard Wizzy3
+* `[lastupdated-artboard-title]` : -Artboard Wizzy3
+* `[lastupdated-artboard-title-nodash]` : Artboard Wizzy3
 * `[lastupdated-increment]` :  1 - this is updated once per document save
 * `[lastupdated-size-bytes]` :  237234 - this is updated on document save
 * `[lastupdated-is-autosaved]` :  0 - this is updated on document save
@@ -69,16 +70,18 @@ This plugin didn't exist for some great inspiration:
 <br>
 
 # Releases
+## current
+- Supports artboard title: `[lastupdated-artboard-title-nodash]`
 ## v1.3.0
-- Supports artboard title: `[artboard-title]`
+- Supports artboard title: `[lastupdated-artboard-title]`
 - Most placeholders will be updated onDocumentChanged, after 5 seconds
-- Only [size-bytes] and [autosaved] are updated onDocumentSaved
+- Only [lastupdated-size-bytes] and [lastupdated-autosaved] are updated onDocumentSaved
 - An update is not triggered anymore when changing placeholders (to prevent loops)
 - The document is no longer marked as changed after saving (except when using [size-bytes] and [autosaved])
 
 ## v1.2.0
 - Marks document as changed on document change instead of selection change (finally). This will prevent unnecessary saves and might be a bit faster.
-- Add [size-bytes] and [autosaved] to possible placeholders
+- Add [lastupdated-size-bytes] and [lastupdated-autosaved] to possible placeholders
 Unfortunately, a double save is needed to save the updated placeholders in the Sketch file.
 
 ## v1.1.0

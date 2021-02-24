@@ -303,7 +303,8 @@ class Lastupdated {
                 ["[lastupdated-second]", () => leadingZero(d.getSeconds())],
                 ["[lastupdated-image]", (curSeed, layerId, self) => {return getLastupdatedImage(curSeed, layerId, self)}],
                 ["[lastupdated-increment]", (curValue) => {return getLastupdatedIncrement(curValue, eventName, artboardId, self)}],
-                ["[lastupdated-artboard-title]", () => artboard.name().toString()]
+                ["[lastupdated-artboard-title]", () => artboard.name().toString()],
+                ["[lastupdated-artboard-title-nodash]", () => {return getLastUpdatedArtboardTitle(artboard)}]
             ]),
             "OnDocumentSaved": new Map([
                 ["[lastupdated-increment]", (curValue) => {return getLastupdatedIncrement(curValue, eventName, artboardId, self)}],
@@ -316,7 +317,14 @@ class Lastupdated {
             replacements[eventName] :
             new Map([...replacements["OnDocumentChanged"]].concat([...replacements["OnDocumentSaved"]]))
         ;
-        
+        function getLastUpdatedArtboardTitle(artboard) {
+            let title = artboard.name().toString();
+            // Remove a dash if it is the first character
+            // This is a prefix for Invision artboards which prevents them for exporting
+            if (title.charAt(0) === "-") title = title.substring(1);
+            return title;
+        }
+
         function getLastupdatedIncrement(curValue, eventName, artboardId, self) {
             let increments = self.savedIncrementArtboards;
             if (eventName === "OnDocumentChanged") {
