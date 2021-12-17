@@ -111,6 +111,8 @@ class Lastupdated {
             // Only ignore when a non-placeholder object
             // This prevents library updates to trigger 
             .filter(change => (this.isChangeAPlaceholder(change.object(),change.fullPath(), document) === false))
+            // Check if pagination is needed
+            .forEach(change => this.checkEnablePagination(change.object()))
             // Get the artboards of valid changes
             .map(change => this.getArtboardFromObject(change.object()))
             // Clean up array
@@ -121,6 +123,20 @@ class Lastupdated {
                 "artboard": artboard
             }))
         ;
+    }
+
+    checkEnablePagination(objRef) {
+        // Only enable pagination when an artboard is involved in the change and pagination placeholders are found on other artboards
+        // Since it has a big impact: all artboards on the page will be searched for pagination placeholders
+
+        // Is artboard involved? (addition, removal or order change)
+
+        // If yes, do we have a history of pagination index?
+        
+        // If no, enable pagination in the next update cycle
+        // If yes, do other artboards have pagination?
+
+        // If yes, enable pagination in the next update cycle
     }
 
     getArtboardFromObject(objRef) {
@@ -275,6 +291,8 @@ class Lastupdated {
     }
 
     getReplacements(eventName = this.eventName, replacementValues) {
+        // for pagination, always also return OnPagination event
+
         let d, date, time;
         let self = this;
         if (replacementValues) {
@@ -310,6 +328,22 @@ class Lastupdated {
                 ["[lastupdated-increment]", (curValue) => {return getLastupdatedIncrement(curValue, eventName, artboardId, self)}],
                 ["[lastupdated-size-bytes]", () => self.sizeBytes.toString()],
                 ["[lastupdated-is-autosaved]", () => self.autoSaved.toString()]
+            ]),
+            "OnPagination": new Map([
+                "[lastupdated-currentpagenr]", () => {
+                    // Add this object to the pagination index
+
+                    // Check if a pagination update is needed
+                    // If no: Return null
+                    // if yes: Return a new value
+                },
+                "[lastupdated-totalpages]", () => {},
+                "[lastupdated-pagenr-next]", () => {},
+                "[lastupdated-pagenr-prev]", () => {},
+                "[lastupdated-currentpagenr-nodash]", () => {},
+                "[lastupdated-totalpages-nodash]", () => {},
+                "[lastupdated-pagenr-next-nodash]", () => {},
+                "[lastupdated-pagenr-prev-nodash]", () => {}
             ])
         };
 
