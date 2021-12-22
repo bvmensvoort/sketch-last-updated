@@ -4,11 +4,13 @@ const SESSIONVAR = "last-updated-marked-artboards";
 const SESSIONVAR_IMAGES = "last-updated-images-seeds";
 const SESSIONVAR_INCREMENT = "last-updated-increment-artboards";
 const SESSIONVAR_DOCUMENTSAVED = "last-updated-artboards-document-saved";
+const SESSIONVAR_PAGINATIONINDEX = "last-updated-pagination-index";
 const verbose = false;
 var savedArtboardsObject;
 var savedImagesSeedsMap;
 var savedIncrementArtboardsSet;
 var savedArtboardsForDocumentSavedObject;
+var savedPaginationIndexObject;
 
 function leadingZero(object, targetLength = 2, padString = "0") {
     return (object + "").padStart(targetLength, padString);
@@ -28,6 +30,8 @@ class Lastupdated {
         this.document = {};     // Should be filled by every event
         this.sizeBytes = "";    // Should be filled for event onDocumentSaved
         this.autoSaved = "";    // Should be filled for event onDocumentSaved
+
+        this.isPaginationUpdateNeeded = false; // Is updating of all pagination placeholders needed? Triggered when artboards change or if pagination placeholder is added
     }
     get savedArtboards() {
         // Format:
@@ -90,6 +94,16 @@ class Lastupdated {
         this.savedArtboards = savedArtboards;
     }
 
+    get savedPaginationIndex() {
+        return savedPaginationIndexObject
+            || Settings.sessionVariable(SESSIONVAR_PAGINATIONINDEX) || {isIndexed:false, placeholders:[]};
+    }
+    set savedPaginationIndex(newPaginationIndex) {
+        savedPaginationIndexObject = newPaginationIndex;    // Save unserialized
+        Settings.setSessionVariable(SESSIONVAR_PAGINATIONINDEX, newPaginationIndex); // Save for later use
+    }
+
+
     // Adds merges savedArtboards with session
     mergeChangedArtboardsWith(changedArtboards) {
         let savedArtboards = this.savedArtboards;
@@ -112,7 +126,7 @@ class Lastupdated {
             // This prevents library updates to trigger 
             .filter(change => (this.isChangeAPlaceholder(change.object(),change.fullPath(), document) === false))
             // Check if pagination is needed
-            .forEach(change => this.checkEnablePagination(change.object()))
+            .filter(change => this.checkEnablePagination(change))
             // Get the artboards of valid changes
             .map(change => this.getArtboardFromObject(change.object()))
             // Clean up array
@@ -125,18 +139,39 @@ class Lastupdated {
         ;
     }
 
-    checkEnablePagination(objRef) {
-        // Only enable pagination when an artboard is involved in the change and pagination placeholders are found on other artboards
-        // Since it has a big impact: all artboards on the page will be searched for pagination placeholders
-
-        // Is artboard involved? (addition, removal or order change)
-
-        // If yes, do we have a history of pagination index?
+    checkEnablePagination(change) {
+        let objClass = change.object().class();
         
-        // If no, enable pagination in the next update cycle
-        // If yes, do other artboards have pagination?
+        // Two changes that trigger a pagination reindex:
+        // 1. Mutation of artboards
+        // 2. Addition of a pagination placeholder - will be triggered when detecting placeholders
 
-        // If yes, enable pagination in the next update cycle
+        // Check if addition of a pagination placeholder (dirty way)
+        if (change.type()===3 && !!this.getReplacements("OnPagination").get(change.object().name().toLowerCase())) {
+            this.isPaginationUpdateNeeded = true;
+            return true;
+        }
+
+        
+
+        // TODO: Check after renaming if it is a placeholder
+        // TODO: Check after renaming an artboard (for -nodash)
+
+        // If this change involved an artboard, it might cause a repagination
+        if (objClass != "MSArtboardGroup"
+           && objClass != "MSImmutableArtboardGroup") {
+           return true; // Do not affect the changes array
+
+        } else {
+            let isDeleted = (change.type() === 2);
+            let isAdded = (change.type() === 3);
+            let isArtboardChanged = (isDeleted || isAdded); // When artboard moves in the tree it is removed and readded
+            if (!isArtboardChanged) return true; // When there is no artboard change involved, Do not affect the changes array
+
+            // Enable pagination update in next update cycle
+            this.isPaginationUpdateNeeded = true;
+        }
+        return true;
     }
 
     getArtboardFromObject(objRef) {
@@ -330,20 +365,110 @@ class Lastupdated {
                 ["[lastupdated-is-autosaved]", () => self.autoSaved.toString()]
             ]),
             "OnPagination": new Map([
-                "[lastupdated-currentpagenr]", () => {
-                    // Add this object to the pagination index
+                ["[lastupdated-totalpages]", () => {
+                    let artboards = this.document.currentPage().artboards();
+                    return artboards.length;
+                }],
+                ["[lastupdated-totalpages-nodash]", () => {
+                    // Return a new value
+                    let artboards = this.document.currentPage().artboards();
+                    let artboardTotal = 0;
+                    for (let artboardNr = 0; artboardNr < artboards.length; artboardNr++) {
+                        if (artboards[artboardNr].name().charAt(0) !== "-") artboardTotal++;
+                    };
 
-                    // Check if a pagination update is needed
-                    // If no: Return null
-                    // if yes: Return a new value
-                },
-                "[lastupdated-totalpages]", () => {},
-                "[lastupdated-pagenr-next]", () => {},
-                "[lastupdated-pagenr-prev]", () => {},
-                "[lastupdated-currentpagenr-nodash]", () => {},
-                "[lastupdated-totalpages-nodash]", () => {},
-                "[lastupdated-pagenr-next-nodash]", () => {},
-                "[lastupdated-pagenr-prev-nodash]", () => {}
+                    return artboardTotal;
+                }],
+                ["[lastupdated-currentpagenr]", (artboard) => {
+                    // Return a new value
+                    let artboards = this.document.currentPage().artboards();
+                    let artboardIndex = null;
+
+                    for (let artboardNr = 0; artboardNr < artboards.length; artboardNr++) {
+                        if (artboards[artboardNr].objectID() === artboard.objectID()) {
+                            artboardIndex = artboardNr;
+                            break;
+                        }
+                    }
+                    return artboardIndex + 1;   // Be 1-based instead of default 0-based
+                }],
+                ["[lastupdated-currentpagenr-nodash]", (artboard) => {
+                    // Return a new value
+                    let artboards = this.document.currentPage().artboards();
+                    let artboardIndex = 0;
+                    var artboardInPage;
+                    for (let artboardNr = 0; artboardNr < artboards.length; artboardNr++) {
+                        artboardInPage = artboards[artboardNr];
+                        if (artboardInPage.name().charAt(0) !== "-") artboardIndex++;
+                        if (artboardInPage.objectID() === artboard.objectID()) break;
+                    }
+                    return artboardIndex;   // Be 1-based instead of default 0-based
+                }],
+                ["[lastupdated-pagenr-next]", (artboard) => {
+                    // Return a new value
+                    let artboards = this.document.currentPage().artboards();
+                    let isCurrentPageFound = false;
+                    let artboardIndex = null;
+
+                    for (let artboardNr = 0; artboardNr < artboards.length; artboardNr++) {
+                        if (isCurrentPageFound) {
+                            artboardIndex = artboardNr;
+                            break;
+                        }
+                        if (artboards[artboardNr].objectID() === artboard.objectID()) isCurrentPageFound = true;
+                    }
+                    if (isCurrentPageFound && artboardIndex !== null) return artboardIndex + 1;   // Be 1-based instead of default 0-based
+                    return " ";
+                }],
+                ["[lastupdated-pagenr-next-nodash]", (artboard) => {
+                    // Return a new value
+                    let artboards = this.document.currentPage().artboards();
+                    let isCurrentPageFound = false;
+                    let artboardIndex = null;
+                    let isNextPageFound = false;
+                    let artboardInPage;
+                    for (let artboardNr = 0; artboardNr < artboards.length; artboardNr++) {
+                        artboardInPage = artboards[artboardNr];
+                        if (artboardInPage.name().charAt(0) !== "-") {
+                            artboardIndex++;
+                            if (isCurrentPageFound) {
+                                isNextPageFound = true;
+                                break;
+                            }
+                        }
+                        if (artboardInPage.objectID() === artboard.objectID()) isCurrentPageFound = true;
+                    }
+
+                    if (isNextPageFound) return artboardIndex;
+                    return " ";
+                }],
+                ["[lastupdated-pagenr-prev]", (artboard) => {
+                    // Return a new value
+                    let artboards = this.document.currentPage().artboards();
+                    let artboardIndex = null;
+                    for (let artboardNr = 0; artboardNr < artboards.length; artboardNr++) {
+                        if (artboards[artboardNr].objectID() === artboard.objectID()) break;
+                        artboardIndex = artboardNr;
+                    }
+                    if (artboardIndex !== null) return artboardIndex + 1;   // Be 1-based instead of default 0-based
+                    return " ";
+                }],
+                ["[lastupdated-pagenr-prev-nodash]", (artboard) => {
+                    // Return a new value
+                    let artboards = this.document.currentPage().artboards();
+                    let artboardIndex = null;
+                    let artboardInPage;
+                    for (let artboardNr = 0; artboardNr < artboards.length; artboardNr++) {
+                        artboardInPage = artboards[artboardNr];
+                        if (artboardInPage.objectID() === artboard.objectID()) break;
+                        if (artboardInPage.name().charAt(0) !== "-") {
+                            artboardIndex++;
+                        }
+                    }
+
+                    if (artboardIndex !== null) return artboardIndex;
+                    return " ";
+                }]
             ])
         };
 
@@ -447,18 +572,25 @@ class Lastupdated {
         }
     }
 
-    applyLastUpdatedOnArtboard(artboard, lastUpdatedDate, artboardId) {
+    applyLastUpdatedOnArtboard(artboard, lastUpdatedDate, artboardId, eventName = this.eventName) {
         // Ignore artboards not on this document
         if (artboard === null) return;
-
+        
         let self = this;
-        let replacements = this.getReplacements(this.eventName, {lastUpdatedDate, artboard, artboardId});
-        let replacementsDocumentSavedKeys = Array.from(this.getReplacements("OnDocumentSaved", {lastUpdatedDate, artboard, artboardId}).keys());
+        let replacements = this.getReplacements(eventName, {lastUpdatedDate, artboard, artboardId});
         let replacementPromises = [];
+        let replacementsDocumentSavedKeys;
+        let replacementsOnPaginationKeys = [];
         
         // Only needed once per artboard
         // Don't search for documentSavedPlaceholders if this artboard is already marked for update
         let isPlaceholderForDocumentSavedFound = (typeof this.savedArtboardsForDocumentSaved[artboardId] !== "undefined");
+        if (eventName !== "OnDocumentSaved") {
+            if (!isPlaceholderForDocumentSavedFound) {
+                replacementsDocumentSavedKeys = Array.from(this.getReplacements("OnDocumentSaved", {lastUpdatedDate, artboard, artboardId}).keys());
+            }
+            replacementsOnPaginationKeys = Array.from(this.getReplacements("OnPagination").keys());
+        }
 
         if (verbose) console.log("applyLastUpdatedOnArtboard, for artboard: ", artboard, "Last updated date: "+ lastUpdatedDate);
         // Loop to iterate on children
@@ -490,8 +622,7 @@ class Lastupdated {
             
             // When a DocumentSaved-placeholder is not found yet for this artboard
             // And the current object is not a placeholder
-            if (!isPlaceholderForDocumentSavedFound && this.eventName !== "OnDocumentSaved") {
-
+            if (!isPlaceholderForDocumentSavedFound && eventName !== "OnDocumentSaved") {
                 // Check if object itself is a DocumentSaved-placeholder
                 isPlaceholderForDocumentSavedFound = (replacementsDocumentSavedKeys.indexOf(sublayerName) > -1);
                 
@@ -510,9 +641,24 @@ class Lastupdated {
                     if (verbose) console.log('applyLastUpdatedOnArtboard Found DocumentSavedPlaceholder! Save artboards for document saved', sublayerName, this.savedArtboardsForDocumentSaved);
                 }
             }
+            if (isPlaceholderForDocumentSavedFound) continue;
+
+            // If it is a pagination placeholder, add it to the index. Only if the index won't be generated anyways this cycle (isIndexed:false)
+            if (this.savedPaginationIndex.isIndexed &&
+                (replacementsOnPaginationKeys.indexOf(sublayerName) > -1)
+                || (!!overridePoints && !!sublayer.overridePoints().find((overridePoint) => (replacementsOnPaginationKeys.indexOf(overridePoint.layerName().toLowerCase()) > -1)))
+                ) {
+                    
+                // Add to paginationIndex
+                let pagIndex = this.savedPaginationIndex;
+                let objectID = sublayer.objectID();
+                if (pagIndex.placeholders.indexOf(objectID + "") > -1) continue; // Don't add an object multiple times
+                pagIndex.placeholders.push(objectID + "");
+                this.savedPaginationIndex = pagIndex;
+            }
         };
         // Prevent another update when an artboard is not changed
-        if (this.eventName === "OnDocumentSaved") {
+        if (eventName === "OnDocumentSaved") {
             let artboards = this.savedArtboardsForDocumentSaved;
             delete artboards[artboardId];
             this.savedArtboardsForDocumentSaved = artboards;
@@ -575,6 +721,146 @@ class Lastupdated {
             let date = d.getDate() + "-" + (d.getMonth()+1) + "-" + d.getFullYear();
             let time = d.getHours() + ":" + leadingZero(d.getMinutes());
             return date +" "+ time;
+        }
+    }
+
+    updatePagination() {
+        // TODO: Prevent multiple changes on the same time
+
+        let self = this;
+        let replacements = this.getReplacements("OnPagination");
+        
+        // Check if pagination placeholders are indexed
+        let isPaginationIndexNeeded = !this.savedPaginationIndex.isIndexed;
+        //if (verbose) 
+        console.log("Update pagination, " + (isPaginationIndexNeeded?"and reindex":"but don't reindex"), this.savedPaginationIndex);
+        if (isPaginationIndexNeeded) {
+            let paginationPlaceholders = [];
+
+            // Loop through all artboards
+            // Detect only pagination placeholders
+            traverseArtboards((artboard, object, overridePoint, key) => {
+                // Save detected object to index
+                paginationPlaceholders.push({
+                    key, 
+                    objectid: object.objectID() +"",
+                    artboardid: artboard.objectID()
+                });
+
+                // Now we are there, update the value as well
+                let newValue = replacements.get(key)(artboard);
+                console.log("2ReplaceValue for " +key);
+                // if (key!=="[lastupdated-totalpages]") return;
+                replaceValue(object, overridePoint, newValue);
+            });
+
+            this.savedPaginationIndex = {
+                placeholders: paginationPlaceholders,
+                isIndexed: true
+            };
+        
+        } else {
+            let doc = Sketch.getSelectedDocument();
+            // Only replace values of saved placeholders
+            this.savedPaginationIndex.placeholders.forEach((placeholderInfo) => {
+                let key = placeholderInfo.key;
+                let object = doc.getLayerWithID(placeholderInfo.objectid);
+                let artboard = doc.getLayerWithID(placeholderInfo.artboardid);
+
+                // Add some robustness. Don't crash when objects are not found.
+                // Continue the loop and for the next cycle make sure to update the index.
+                if (!object || !artboard) {
+                    let pagIndex = this.savedPaginationIndex;
+                    pagIndex.isIndexed = false;
+                    this.savedPaginationIndex = pagIndex; // And regenerate the index next time
+                    return;
+                }
+
+                // Continue finding placeholders and updating values
+                object = object.sketchObject;
+                artboard = artboard.sketchObject;
+
+                traverseObject(object, new Map([[key]]), (object, overridePoint, key) => {
+                    let newValue = replacements.get(key)(artboard);
+                    console.log("ReplaceValue for " +key);
+                    //if (key!=="[lastupdated-totalpages]") return;
+                    replaceValue(object, overridePoint, newValue);
+                });
+            });
+        }
+        
+        function traverseArtboards(onDetectEvent) {
+            self.document.currentPage().artboards().forEach((artboard)=> {
+                traverseArtboard(artboard, replacements, (object, overridePoint, key) => {
+                    onDetectEvent(artboard, object, overridePoint, key);
+                });
+            });
+        }
+
+        function traverseArtboard(artboard, placeholderKeys, onDetectEvent) {
+            for (let i = 0; i < artboard.children().length; i++) {
+                let sublayer = artboard.children()[i];
+                traverseObject(sublayer, placeholderKeys, onDetectEvent);
+            }
+        }
+
+        function traverseObject(sublayer, placeholderKeys, onDetectEvent) {
+            let sublayerName = sublayer.name().toLowerCase();
+
+            // First check if object is a placeholder
+            let findReplacementValue = placeholderKeys.has(sublayerName);
+            if (findReplacementValue) {
+                onDetectEvent(sublayer, undefined, sublayerName);
+                return;
+            }
+
+            // Check if object has overridePoints with a placeholder
+            let hasOverridePoints = sublayer.hasOwnProperty("overrides");
+            if (!hasOverridePoints) return;
+
+            let overrideName
+            let detectedOverridePoint = sublayer.overridePoints().find((overridePoint) => {
+                overrideName = overridePoint.layerName().toLowerCase();
+                return (placeholderKeys.has(overrideName))
+            });
+            if (detectedOverridePoint) {
+                onDetectEvent(sublayer, detectedOverridePoint, overrideName);
+                return;
+            }
+        }
+        
+        
+        function replaceValue(object, overridePoint, value) {
+            if (verbose) console.log(`Replace value to ${value}, for object:`, object, overridePoint);
+
+            if (!overridePoint) {
+                replaceObjectValue(object, value);
+            } else {
+                replaceOverrideValue(object, overridePoint, value);
+            }
+
+            function replaceObjectValue(sublayer, newValue) {
+                newValue += ""; // Make sure it is a string
+                return new Promise((resolve) => {
+                    let curValue = sublayer.stringValue();
+                    
+                    if (curValue!==newValue) { 
+                        sublayer.setStringValue(newValue); 
+                    }
+                    resolve();
+                });
+            }
+            function replaceOverrideValue(sublayer, overridePoint, newValue) {
+                newValue += ""; // Make sure it is a string
+                return new Promise((resolve) => {
+                    let id = overridePoint.name().split("_")[0];
+                    let curValue = sublayer.overrides()[id];
+                    if (curValue!==newValue) {
+                        sublayer.setValue_forOverridePoint_(newValue, overridePoint); 
+                    }
+                    resolve();
+                }); 
+            }
         }
     }
 }

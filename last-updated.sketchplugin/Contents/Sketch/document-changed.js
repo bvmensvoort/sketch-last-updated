@@ -21,6 +21,12 @@ var onDocumentChanged = function (context) {
     
     lastupdated.updatePlaceholdersInChangedArtboards(context);
 
+    if (verbose) console.log("Pagination is " + (lastupdated.isPaginationUpdateNeeded? "": "not ") + "needed.");
+    if (lastupdated.isPaginationUpdateNeeded) {
+        setTimeout(()=>{lastupdated.updatePagination()}, 5000);
+    }
+
+
     // If a pagination index is needed, 
     // - Update Pagination values (eg. total artboards)
     // - Loop through all artboards
