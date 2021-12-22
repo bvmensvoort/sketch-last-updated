@@ -26,6 +26,8 @@ var onDocumentSaved = function (context) {
     // Updates for [lastupdated-size-bytes] and [lastupdated-is-autosaved]
     updatedChangedArtboards();
 
+    lastupdated.updatePagination();
+
     function updateIncrements() {
         // Remove from the list, so it will be updated on next documentChanged
         lastupdated.savedIncrementArtboards = [];

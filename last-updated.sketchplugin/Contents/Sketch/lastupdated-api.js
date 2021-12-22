@@ -147,15 +147,19 @@ class Lastupdated {
         // 2. Addition of a pagination placeholder - will be triggered when detecting placeholders
 
         // Check if addition of a pagination placeholder (dirty way)
-        if (change.type()===3 && !!this.getReplacements("OnPagination").get(change.object().name().toLowerCase())) {
+        let replacements = this.getReplacements("OnPagination");
+        let changeType = change.type();
+        let isChanged = (changeType === 1);
+        let isDeleted = (changeType === 2);
+        let isAdded = (changeType === 3);
+
+        // When a Pagination placeholder is added
+        // Trigger on renaming a placeholder is not possible, because this will trigger a loop.
+        // It is not possible to distinguish a rename from a value change
+        if (isAdded && !!replacements.get(change.object().name().toLowerCase())) {
             this.isPaginationUpdateNeeded = true;
             return true;
         }
-
-        
-
-        // TODO: Check after renaming if it is a placeholder
-        // TODO: Check after renaming an artboard (for -nodash)
 
         // If this change involved an artboard, it might cause a repagination
         if (objClass != "MSArtboardGroup"
@@ -163,11 +167,15 @@ class Lastupdated {
            return true; // Do not affect the changes array
 
         } else {
-            let isDeleted = (change.type() === 2);
-            let isAdded = (change.type() === 3);
-            let isArtboardChanged = (isDeleted || isAdded); // When artboard moves in the tree it is removed and readded
-            if (!isArtboardChanged) return true; // When there is no artboard change involved, Do not affect the changes array
+            // Changes to trigger pagination:
+            // - When artboard is added (type=2)
+            // - When artboard is removed (type=3)
+            // - When artboard moves in the tree it is removed and readded (type=2 or type=3 and isMove=true)
+            // - When artboard is renamed (type=1)
 
+            // Don't trigger double change when moved
+            if (isAdded && change.isMove()) return true;
+            
             // Enable pagination update in next update cycle
             this.isPaginationUpdateNeeded = true;
         }
@@ -726,14 +734,14 @@ class Lastupdated {
 
     updatePagination() {
         // TODO: Prevent multiple changes on the same time
+        this.isPaginationUpdateNeeded = false;
 
         let self = this;
         let replacements = this.getReplacements("OnPagination");
         
         // Check if pagination placeholders are indexed
         let isPaginationIndexNeeded = !this.savedPaginationIndex.isIndexed;
-        //if (verbose) 
-        console.log("Update pagination, " + (isPaginationIndexNeeded?"and reindex":"but don't reindex"), this.savedPaginationIndex);
+        if (verbose) console.log("Update pagination, " + (isPaginationIndexNeeded?"and reindex":"but don't reindex"), this.savedPaginationIndex);
         if (isPaginationIndexNeeded) {
             let paginationPlaceholders = [];
 
@@ -749,8 +757,6 @@ class Lastupdated {
 
                 // Now we are there, update the value as well
                 let newValue = replacements.get(key)(artboard);
-                console.log("2ReplaceValue for " +key);
-                // if (key!=="[lastupdated-totalpages]") return;
                 replaceValue(object, overridePoint, newValue);
             });
 
@@ -782,8 +788,6 @@ class Lastupdated {
 
                 traverseObject(object, new Map([[key]]), (object, overridePoint, key) => {
                     let newValue = replacements.get(key)(artboard);
-                    console.log("ReplaceValue for " +key);
-                    //if (key!=="[lastupdated-totalpages]") return;
                     replaceValue(object, overridePoint, newValue);
                 });
             });
