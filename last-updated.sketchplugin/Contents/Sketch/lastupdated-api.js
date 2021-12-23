@@ -55,12 +55,20 @@ class Lastupdated {
             ["[lastupdated-hour]", {type, value: (d) => d.getHours().toString()}],
             ["[lastupdated-minute]", {type, value: (d) => leadingZero(d.getMinutes())}],
             ["[lastupdated-second]", {type, value: (d) => leadingZero(d.getSeconds())}],
-            ["[lastupdated-image]", {type, value: (curSeed, layerId, self) => {return getLastupdatedImage(curSeed, layerId, self)}}],
+            ["[lastupdated-image]", {type, value: (seed, layerId, d, artboard, artboardId, object, overridePoint) => {
+                if (verbose) console.log('Generate a new image with seed:', seed);
+
+                // Save new seed first, to prevent timing issues (another change is incoming while still drawing new image)
+                let savedImages = self.#savedImagesSeeds;
+                savedImages.set(layerId,{seed})
+                self.#savedImagesSeeds = savedImages;
+
+                let image = generateImage(seed);
+                return image;
+            }}],
             ["[lastupdated-increment]", {type, value: (d, artboard, artboardId, object, overridePoint) => {
                 let curValue = this.#getCurrentValue(object, overridePoint);
                 let increments = self.#savedIncrementArtboards;
-
-                console.log(curValue, increments, increments.has(artboardId))
                 
                 // If increment is already increased before saving, do nothing
                 if (increments.has(artboardId)) return curValue;
@@ -206,6 +214,69 @@ class Lastupdated {
         function getFormattedDate(date) {
             if (!date) return "";
             return date.getDate() + "-" + (date.getMonth()+1) + "-" + date.getFullYear();
+        }
+
+        function generateImage(seed) {
+            const base64Image = generateImage(seed);
+            var imageData = NSData.alloc().initWithBase64EncodedString_options(base64Image, NSDataBase64DecodingIgnoreUnknownCharacters);
+            var image = NSImage.alloc().initWithData(imageData);
+        
+            return image;
+        
+            function generateImage(seed) {
+                const Style = Sketch.Style;
+                const ShapePath = Sketch.ShapePath;
+                const Rectangle = Sketch.Rectangle;
+                const page = Sketch.getSelectedDocument().selectedPage.sketchObject; // It is for temporary use to create the icon
+        
+                // Use old API to be able to export later
+                // https://sketchplugins.com/d/432-insert-new-layer-underneath-other-layers/4
+                const group = MSLayerGroup.new();
+                group.setName("Blockie");
+                page.addLayers([group]);
+            
+                let shapes = [];
+        
+                const iconData = new Blockies().renderIcon({seed});
+                const iconWidth = Math.sqrt(iconData.length);
+                const pixelSize = 10;
+                const colors = ['', "#ffffff", "#000000"];
+        
+                for (let i=0; i<iconData.length && i<200; i++) {
+                    const pixel = iconData[i];
+                    if (pixel===0) continue;
+                    
+                    const row = Math.floor(i / iconWidth);
+                    const col = i % iconWidth;
+        
+                    // Use new API where possible
+                    shapes.push(new ShapePath({
+                        name: "Pixel "+i,
+                        frame: new Rectangle(pixelSize * row, pixelSize * col, pixelSize, pixelSize),
+                        style: { fills: [{ color: colors[pixel], fillType: Style.FillType.Color }], borders: [] },
+                        parent: group
+                    }));
+                }        
+        
+                var result = getBase64ImageFromSlice(group);
+        
+                // Clean up / remove all objects
+                shapes.forEach((shape) => shape.remove());
+                group.removeFromParent();
+        
+                return result;
+            }
+            
+            function getBase64ImageFromSlice(slice) {
+                // From: https://github.com/Ashung/Automate-Sketch/blob/master/automate-sketch.sketchplugin/Contents/Sketch/Development/Copy_Slice_As_Base64.js
+                const exportRequest = MSExportRequest.exportRequestsFromExportableLayer_inRect_useIDForName(
+                    slice, slice.absoluteInfluenceRect(), false
+                ).firstObject();
+                const exporter = MSExporter.exporterForRequest_colorSpace(exportRequest, NSColorSpace.sRGBColorSpace());
+                const imageData = exporter.data();
+                const base64Code = imageData.base64EncodedStringWithOptions(NSDataBase64EncodingEndLineWithLineFeed);
+                return base64Code;
+            }
         }
     }
     get #savedArtboards() {
@@ -502,22 +573,6 @@ class Lastupdated {
         });
     }
 
-    isSeedChanged(layerId, newSeed) {
-        let savedImagesSeeds = this.#savedImagesSeeds;
-
-        if (verbose) {
-            if (!savedImagesSeeds.has(layerId)) {
-                console.log("isSeedChanged: no old seed", layerId);
-            } else {
-                console.log("isSeedChanged: ",  (savedImagesSeeds.get(layerId).seed !== newSeed) ," old seed and new seed:", savedImagesSeeds.get(layerId).seed, newSeed, layerId)
-            }
-        }
-
-        return !savedImagesSeeds.has(layerId) 
-            || savedImagesSeeds.get(layerId).seed !== newSeed
-        ;
-    }
-
     getReplacements(eventName = this.eventName, replacementValues) {
         // for pagination, always also return OnPagination event
 
@@ -701,68 +756,7 @@ class Lastupdated {
             return image;
         }
 
-        function generateImage(seed) {
-            const base64Image = generateImage(seed);
-            var imageData = NSData.alloc().initWithBase64EncodedString_options(base64Image, NSDataBase64DecodingIgnoreUnknownCharacters);
-            var image = NSImage.alloc().initWithData(imageData);
         
-            return image;
-        
-            function generateImage(seed) {
-                const Style = Sketch.Style;
-                const ShapePath = Sketch.ShapePath;
-                const Rectangle = Sketch.Rectangle;
-                const page = Sketch.getSelectedDocument().selectedPage.sketchObject; // It is for temporary use to create the icon
-        
-                // Use old API to be able to export later
-                // https://sketchplugins.com/d/432-insert-new-layer-underneath-other-layers/4
-                const group = MSLayerGroup.new();
-                group.setName("Blockie");
-                page.addLayers([group]);
-            
-                let shapes = [];
-        
-                const iconData = new Blockies().renderIcon({seed});
-                const iconWidth = Math.sqrt(iconData.length);
-                const pixelSize = 10;
-                const colors = ['', "#ffffff", "#000000"];
-        
-                for (let i=0; i<iconData.length && i<200; i++) {
-                    const pixel = iconData[i];
-                    if (pixel===0) continue;
-                    
-                    const row = Math.floor(i / iconWidth);
-                    const col = i % iconWidth;
-        
-                    // Use new API where possible
-                    shapes.push(new ShapePath({
-                        name: "Pixel "+i,
-                        frame: new Rectangle(pixelSize * row, pixelSize * col, pixelSize, pixelSize),
-                        style: { fills: [{ color: colors[pixel], fillType: Style.FillType.Color }], borders: [] },
-                        parent: group
-                    }));
-                }        
-        
-                var result = getBase64ImageFromSlice(group);
-        
-                // Clean up / remove all objects
-                shapes.forEach((shape) => shape.remove());
-                group.removeFromParent();
-        
-                return result;
-            }
-            
-            function getBase64ImageFromSlice(slice) {
-                // From: https://github.com/Ashung/Automate-Sketch/blob/master/automate-sketch.sketchplugin/Contents/Sketch/Development/Copy_Slice_As_Base64.js
-                const exportRequest = MSExportRequest.exportRequestsFromExportableLayer_inRect_useIDForName(
-                    slice, slice.absoluteInfluenceRect(), false
-                ).firstObject();
-                const exporter = MSExporter.exporterForRequest_colorSpace(exportRequest, NSColorSpace.sRGBColorSpace());
-                const imageData = exporter.data();
-                const base64Code = imageData.base64EncodedStringWithOptions(NSDataBase64EncodingEndLineWithLineFeed);
-                return base64Code;
-            }
-        }
     }
 
     applyLastUpdatedOnArtboard(artboard, lastUpdatedDate, artboardId, eventName = this.eventName) {
@@ -779,21 +773,24 @@ class Lastupdated {
 
         this.#traverseArtboard(artboard, replacements, (object, overridePoint, key) => {
             // First check OnDocumentChanged placeholders
-            let isImage = (key === "[lastupdated-image]");
             let replacement = this.#replacements["all"].get(key);
             let keytype = replacement.type;
 
             switch (keytype) {
                 case "OnDocumentChanged":
-                    let value = replacement.value(new Date(lastUpdatedDate), artboard, artboardId, object, overridePoint);
-                    if (!isImage) this.#replaceValue(object, overridePoint, value);
-                    else { console.log("TODO: Replace image"); }//this.#replaceImage(object, overridePoint, value);
+                    let isImage = (key === "[lastupdated-image]");
+                    if (!isImage) {
+                        let value = replacement.value(new Date(lastUpdatedDate), artboard, artboardId, object, overridePoint);
+                        this.#replaceStringValue(object, overridePoint, value);
+                    } else { 
+                        this.#replaceImageValue(object, overridePoint, replacement.value, lastUpdatedDate);
+                    }
                     break;
 
                 case "OnDocumentSaved":
                     if (eventName === "OnDocumentSaved") {
                         let value = replacement.value(lastUpdatedDate, artboardId);
-                        this.#replaceValue(object, overridePoint, value);
+                        this.#replaceStringValue(object, overridePoint, value);
                     } else {   
                         let artboards = this.#savedArtboardsForDocumentSaved;
                         artboards[artboardId] = {};
@@ -1005,7 +1002,7 @@ class Lastupdated {
 
                 // Now we are there, update the value as well
                 let newValue = replacements.get(key)(artboard);
-                this.#replaceValue(object, overridePoint, newValue);
+                this.#replaceStringValue(object, overridePoint, newValue);
             });
 
             this.#savedPaginationIndex = {
@@ -1036,7 +1033,7 @@ class Lastupdated {
 
                 this.#traverseObject(object, new Map([[key]]), (object, overridePoint, key) => {
                     let newValue = replacements.get(key)(artboard);
-                    this.#replaceValue(object, overridePoint, newValue);
+                    this.#replaceStringValue(object, overridePoint, newValue);
                 });
             });
         }
@@ -1088,7 +1085,7 @@ class Lastupdated {
         }
     }
 
-    #replaceValue(object, overridePoint, value) {
+    #replaceStringValue(object, overridePoint, value) {
         if (verbose) console.log(`Replace value to ${value}, for object:`, object, overridePoint);
         let self = this;
         if (!overridePoint) {
@@ -1117,6 +1114,61 @@ class Lastupdated {
                 }
                 resolve();
             });
+        }
+    }
+
+    #replaceImageValue(object, overridePoint, getValue, seedDate) {
+        if (verbose) console.log(`Replace image to hash ${seedDate}, for object:`, object, overridePoint);
+
+        let self = this;
+        let layerId = object.objectID();
+
+        return new Promise(function (resolve) {
+            let seed = generateImageSeed(seedDate);
+            // Validate
+            // Don't do anything if image result will be the same. Performance optimization
+            if (!isSeedChanged.apply(self, [layerId, seed])) { return; }
+            
+            if (!overridePoint) {
+                // It is not possible to set fills on Images
+                var layerFill = object.style().fills();
+                if (!layerFill.length) { return; }
+                layerFill = layerFill.firstObject();
+                layerFill.setFillType(4);
+                layerFill.setPatternFillType(1);
+                let newImageData = getValue(seed, layerId);
+                layerFill.setImage(MSImageData.alloc().initWithImage(newImageData));
+            } else {
+                let newValue = getValue(seed, layerId);
+                // Some code how to replace image overrides: https://sketchplugins.com/d/794-how-do-you-update-an-override-with-a-new-image/6    
+                let imageData = MSImageData.alloc().initWithImage(newValue);
+                object.setValue_forOverridePoint(imageData, overridePoint);
+            }
+            resolve();            
+        });
+
+        // Generate a seed to summarize the contents of the image
+        // Because it takes a while to process a change, use an image based on minutes instead of seconds
+        function generateImageSeed(seedDate) {
+            let d = new Date(seedDate);
+            let date = d.getDate() + "-" + (d.getMonth()+1) + "-" + d.getFullYear();
+            let time = d.getHours() + ":" + leadingZero(d.getMinutes());
+            return date +" "+ time;
+        }
+
+        function isSeedChanged(layerId, newSeed) {
+            let savedImagesSeeds = this.#savedImagesSeeds;
+            if (verbose) {
+                if (!savedImagesSeeds.has(layerId)) {
+                    console.log("isSeedChanged? No old seed", layerId);
+                } else {
+                    console.log("isSeedChanged?", (savedImagesSeeds.get(layerId).seed !== newSeed) ,"Old seed and new seed:", savedImagesSeeds.get(layerId).seed, newSeed, layerId)
+                }
+            }
+    
+            return !savedImagesSeeds.has(layerId) 
+                || savedImagesSeeds.get(layerId).seed !== newSeed
+            ;
         }
     }
 
