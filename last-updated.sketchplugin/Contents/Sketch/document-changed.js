@@ -26,15 +26,6 @@ var onDocumentChanged = function (context) {
         setTimeout(()=>{lastupdated.updatePagination()}, 5000);
     }
 
-
-    // If a pagination index is needed, 
-    // - Update Pagination values (eg. total artboards)
-    // - Loop through all artboards
-    //   - Only check for pagination Placeholders (eventName)
-    //   (- Save object to Pagination Index -> handled in getReplacements)
-    //     (- Update its value -> handled in getReplacements)
-
-
     if (verbose) console.log("--- End of change ---")
     return;
 };
