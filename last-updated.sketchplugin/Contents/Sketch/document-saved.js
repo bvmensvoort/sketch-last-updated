@@ -20,7 +20,7 @@ var onDocumentSaved = function (context) {
 
     if (verbose) console.log("Enable all updated increments to be updated again (they are updated once per save)")
     // First delete all saved
-    updateIncrements();
+    lastupdated.resetIncrements();
     
     if (verbose) console.log("Update all DocumentSaved placeholders on changed artboards")
     // Updates for [lastupdated-size-bytes] and [lastupdated-is-autosaved]
@@ -28,10 +28,6 @@ var onDocumentSaved = function (context) {
 
     lastupdated.updatePagination();
 
-    function updateIncrements() {
-        // Remove from the list, so it will be updated on next documentChanged
-        lastupdated.savedIncrementArtboards = [];
-    }
 
     function updatedChangedArtboards() {
         lastupdated.document = document;
