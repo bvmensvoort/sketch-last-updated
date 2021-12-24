@@ -1,7 +1,7 @@
 {
   "name": "Last-updated for Sketch",
-  "description": "Sketch plugin to update placeholders with with metadata about last save, such as timestamp or increment.",
-  "version": "1.3.0",
+  "description": "Sketch plugin to update placeholders with with metadata about last save, such as timestamp or increment, and page numbering.",
+  "version": "1.4.0",
   "identifier": "com.sketchapp.lastupdated",
   "author": "Bram van Mensvoort",
   "authorEmail": "info@bvmensvoort.nl",

@@ -7,11 +7,12 @@
         </description>
         <language>en</language>
         <item>
-            <title>Current</title>
+            <title>Version 1.4</title>
             <description>
-            - Supports artboard title without dash: `[lastupdated-artboard-title-nodash]`
+            - Supports artboard title: `[lastupdated-artboard-title-nodash]`
+            - Supports page numbering: `[lastupdated-totalpages]`, `[lastupdated-currentpagenr]`, `[lastupdated-pagenr-next]`, `[lastupdated-pagenr-prev]` and its `-nodash` variant.
             </description>
-            <enclosure url="https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.3.0/sketch-last-updated-1.3.0.zip" sparkle:version="0.1"/>
+            <enclosure url="https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.4.0/sketch-last-updated-1.3.0.zip" sparkle:version="0.1"/>
         </item>
         <item>
             <title>Version 1.3</title>
