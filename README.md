@@ -1,6 +1,6 @@
 # Last-updated
 
-Sketch plugin to update placeholders with with metadata about last save, such as timestamp or increment
+Sketch plugin to update placeholders with with metadata about last save, such as timestamp or increment, and about page numbering.
 
 <br>
 
