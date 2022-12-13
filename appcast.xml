@@ -3,9 +3,18 @@
         <title>Last-updated plugin change log</title>
         <link>https://raw.githubusercontent.com/bvmensvoort/sketch-last-updated/master/appcast.xml</link>
         <description>
-        Most recent changes to last-updated plugin for Sketch
+        Most recent changes to last-updated plugin for Sketch.
+
+        Sketch plugin to update placeholders with with metadata about last save, such as timestamp or increment, and about page numbering.
         </description>
         <language>en</language>
+        <item>
+            <title>Version 1.4.1</title>
+            <description>
+            - Fix for replacing overrides. The plugin should be faster with this change.
+            </description>
+            <enclosure url="https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.4.1/sketch-last-updated-1.4.1.zip" sparkle:version="0.1"/>
+        </item>
         <item>
             <title>Version 1.4</title>
             <description>
@@ -19,7 +28,7 @@
             <description>
             - Supports artboard title: `[lastupdated-artboard-title]`
             - Most placeholders will be updated onDocumentChanged, after 5 seconds
-            - Only [lastupdated-size-bytes] and [lastupdated-autosaved] are updated onDocumentSaved
+            - Only `[lastupdated-size-bytes]` and `[lastupdated-autosaved]` are updated onDocumentSaved
             - An update is not triggered anymore when changing placeholders (to prevent loops)
             - The document is no longer marked as changed after saving (except when using [size-bytes] and [autosaved])
             </description>
@@ -29,7 +38,7 @@
             <title>Version 1.2</title>
             <description>
             - Marks document as changed on document change instead of selection change (finally). This will prevent unnecessary saves and might be a bit faster.
-            - Add [size-bytes] and [autosaved] to possible placeholders
+            - Add `[size-bytes]` and `[autosaved]` to possible placeholders
             </description>
             <enclosure url="https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.2.0/sketch-last-updated-1.2.0.zip" sparkle:version="0.1"/>
         </item>

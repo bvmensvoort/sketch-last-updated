@@ -78,6 +78,9 @@ This plugin didn't exist for some great inspiration:
 <br>
 
 # Releases
+## 1.4.1
+- Fix for replacing overrides. The plugin should be faster with this change.
+
 ## 1.4.0
 - Supports artboard title: `[lastupdated-artboard-title-nodash]`
 - Supports page numbering: `[lastupdated-totalpages]`, `[lastupdated-currentpagenr]`, `[lastupdated-pagenr-next]`, `[lastupdated-pagenr-prev]` and its `-nodash` variant.
@@ -85,13 +88,13 @@ This plugin didn't exist for some great inspiration:
 ## v1.3.0
 - Supports artboard title: `[lastupdated-artboard-title]`
 - Most placeholders will be updated onDocumentChanged, after 5 seconds
-- Only [lastupdated-size-bytes] and [lastupdated-autosaved] are updated onDocumentSaved
+- Only `[lastupdated-size-bytes]` and `[lastupdated-autosaved]` are updated onDocumentSaved
 - An update is not triggered anymore when changing placeholders (to prevent loops)
-- The document is no longer marked as changed after saving (except when using [size-bytes] and [autosaved])
+- The document is no longer marked as changed after saving (except when using `[size-bytes]` and `[autosaved]`)
 
 ## v1.2.0
 - Marks document as changed on document change instead of selection change (finally). This will prevent unnecessary saves and might be a bit faster.
-- Add [lastupdated-size-bytes] and [lastupdated-autosaved] to possible placeholders
+- Add `[lastupdated-size-bytes]` and `[lastupdated-autosaved]` to possible placeholders
 Unfortunately, a double save is needed to save the updated placeholders in the Sketch file.
 
 ## v1.1.0

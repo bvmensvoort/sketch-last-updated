@@ -733,12 +733,16 @@ class Lastupdated {
         // Check if object has overridePoints with a placeholder
         let hasOverridePoints = sublayer.hasOwnProperty("overrides");
         if (!hasOverridePoints) return;
-
-        let overrideName;
+        
         sublayer.overridePoints().forEach((overridePoint) => {
-            overrideName = overridePoint.layerName().toLowerCase();
-            if (placeholderKeys.has(overrideName)) {
-                onDetectEvent(sublayer, overridePoint, overrideName);
+            let overrideName = overridePoint.layerName().toLowerCase();
+            let hasALastUpdatedPlaceholder = placeholderKeys.has(overrideName);
+            let expectedPropertyName = ["[lastupdated-image]"].indexOf(overrideName) === -1? "stringValue" : "image";
+
+            if (hasALastUpdatedPlaceholder) {
+                if (overridePoint.property() == expectedPropertyName) {
+                    onDetectEvent(sublayer, overridePoint, overrideName);
+                }
             }
         });
     }
