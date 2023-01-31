@@ -9,6 +9,14 @@
         </description>
         <language>en</language>
         <item>
+            <title>Version 1.4.2</title>
+            <description>
+            - Fix for replacing overrides and be compatible with latest Sketch version (tested on 95.1)
+            - Increased Sketch compatible version to 95
+            </description>
+            <enclosure url="https://github.com/bvmensvoort/sketch-last-updated/releases/download/v1.4.2/sketch-last-updated-1.4.2.zip" sparkle:version="0.1"/>
+        </item>
+        <item>
             <title>Version 1.4.1</title>
             <description>
             - Fix for replacing overrides. The plugin should be faster with this change.

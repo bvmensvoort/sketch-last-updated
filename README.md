@@ -78,6 +78,10 @@ This plugin didn't exist for some great inspiration:
 <br>
 
 # Releases
+## 1.4.2
+- Fix for replacing overrides and be compatible with latest Sketch version (tested on 95.1)
+- Increased Sketch compatible version to 95
+
 ## 1.4.1
 - Fix for replacing overrides. The plugin should be faster with this change.
 

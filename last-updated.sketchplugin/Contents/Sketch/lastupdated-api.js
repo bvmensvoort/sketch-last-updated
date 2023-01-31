@@ -522,16 +522,23 @@ class Lastupdated {
         
         function detectPlaceholderInOverride(overrideValueReference, object) {
             let isPlaceholder = false;
-            let overrideId = overrideValueReference.overrideName().toString();
+            let refPaths = overrideValueReference.pathComponents();
+            if (refPaths.length === 0) return false;
 
-            // Find overridePoint in order to get the name of the changed overrideValue
+            // Find matching overridePoint
+            let overrideValueId = refPaths[refPaths.length-1].toString();
             let matchingOverridePoint = object.overridePoints().find(function (overridePoint) {
-                return overridePoint.name().toString()+"" == overrideId;
+                
+                // Match by path, a cumbersome way to match the IDs.
+                let overridePointPath = overridePoint.pathComponents();
+                if (overridePointPath.length === 0) return false;
+                let overridePointId = overridePointPath[overridePointPath.length-1];
+                return overridePointId === overrideValueId;
             });
 
             // Check if overridePoint matches a placeholder name
             if (matchingOverridePoint) {
-                isPlaceholder = isNameAPlaceholder(matchingOverridePoint.layerName());
+                isPlaceholder = self.#getPlaceholderNameFromOverridePoint(matchingOverridePoint, self.#replacements["all"]) !== null;
             }
 
             return isPlaceholder;
@@ -733,17 +740,13 @@ class Lastupdated {
         // Check if object has overridePoints with a placeholder
         let hasOverridePoints = sublayer.hasOwnProperty("overrides");
         if (!hasOverridePoints) return;
-        
-        sublayer.overridePoints().forEach((overridePoint) => {
-            let overrideName = overridePoint.layerName().toLowerCase();
-            let hasALastUpdatedPlaceholder = placeholderKeys.has(overrideName);
-            let expectedPropertyName = ["[lastupdated-image]"].indexOf(overrideName) === -1? "stringValue" : "image";
 
-            if (hasALastUpdatedPlaceholder) {
-                if (overridePoint.property() == expectedPropertyName) {
-                    onDetectEvent(sublayer, overridePoint, overrideName);
-                }
-            }
+        sublayer.overridePoints().forEach((overridePoint) => {
+
+            let overrideName = this.#getPlaceholderNameFromOverridePoint(overridePoint, placeholderKeys);
+            if (overrideName === null) return;
+
+            onDetectEvent(sublayer, overridePoint, overrideName);
         });
     }
 
@@ -843,6 +846,30 @@ class Lastupdated {
             curValue = object.overrides()[id];
         }
         return curValue;
+    }
+
+    // A cumbersome way to get the name of the overridePoint
+    #getPlaceholderNameFromOverridePoint(overridePoint, placeholderKeys) {
+        let overrideProperty = overridePoint.property();
+        if (["stringvalue", "image"].indexOf(overrideProperty.toLowerCase()) === -1) return null;
+
+        let overrideName = overridePoint.layer().description(); // Example: <MSImmutableTextLayer: 0x7faa485c90> [lastupdated-artboard-title] (76E452B9-C5FE-487F-B7BA-C9D79DE644)
+        let expectedPropertyName = ["[lastupdated-image]"].indexOf(overrideName) === -1? "stringValue" : "image";
+        if (overridePoint.property() != expectedPropertyName) return null;
+
+        var hasALastUpdatedPlaceholder = false;
+        for (const placeholderKey of placeholderKeys.keys()) {
+            if (overrideName.indexOf(placeholderKey) > -1) {
+                hasALastUpdatedPlaceholder = true;
+                overrideName = placeholderKey;
+                break;
+            }
+        }
+        if (hasALastUpdatedPlaceholder) {
+            return overrideName;
+        } else {
+            return null;
+        }
     }
 }
 
